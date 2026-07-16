@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "turnkey_factory:controller",
+    "turnkey_factory:leveler"
+  ]
+}

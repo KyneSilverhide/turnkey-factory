@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "LLL",
+    "LPL",
+    "LLL"
+  ],
+  "key": {
+    "L": { "item": "minecraft:lapis_lazuli" },
+    "P": { "item": "minecraft:paper" }
+  },
+  "result": {
+    "id": "turnkey_factory:architect_blueprint",
+    "count": 1
+  }
+}

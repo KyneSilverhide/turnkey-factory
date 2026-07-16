@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "QRQ",
+    "RGR",
+    "QRQ"
+  ],
+  "key": {
+    "Q": { "item": "minecraft:quartz" },
+    "R": { "item": "minecraft:redstone" },
+    "G": { "item": "minecraft:gold_ingot" }
+  },
+  "result": {
+    "id": "turnkey_factory:control_core",
+    "count": 1
+  }
+}

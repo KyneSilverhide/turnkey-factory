@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "IBI",
+    "ICI",
+    "IKI"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "B": { "item": "turnkey_factory:architect_blueprint" },
+    "C": { "item": "minecraft:crafting_table" },
+    "K": { "item": "turnkey_factory:control_core" }
+  },
+  "result": {
+    "id": "turnkey_factory:controller",
+    "count": 1
+  }
+}
