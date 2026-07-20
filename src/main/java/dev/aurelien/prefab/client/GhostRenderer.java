@@ -26,10 +26,14 @@ import java.util.List;
 
 @EventBusSubscriber(modid = PrefabMod.MODID, value = Dist.CLIENT)
 public class GhostRenderer {
-    private static final int RENDER_RADIUS = 64; // blocs
-    // Reparcourir tous les block entities des chunks proches est coûteux (jusqu'à ~11×11 chunks) : on ne
-    // le refait que toutes les RESCAN_INTERVAL frames au lieu de chaque frame (60+ fois/s) — la position
-    // d'un contrôleur/niveleuse ne change de toute façon jamais entre deux poses.
+    // Distance depuis laquelle on cherche des contrôleurs/niveleuses. Doit couvrir le pire cas : un
+    // contrôleur avec dimensions ET décalage du fantôme au maximum (cf. ControllerBlockEntity.MAX_HORIZONTAL/
+    // MAX_HEIGHT/OFFSET_MAX) peut avoir un coin de bâtiment à ~150 blocs de la position du bloc contrôleur
+    // lui-même — sans cette marge, le fantôme disparaîtrait quand le joueur se tient au bord du bâtiment.
+    private static final int RENDER_RADIUS = 160; // blocs
+    // Reparcourir tous les block entities des chunks proches est coûteux (jusqu'à ~21×21 chunks à ce rayon) :
+    // on ne le refait que toutes les RESCAN_INTERVAL frames au lieu de chaque frame (60+ fois/s) — la
+    // position d'un contrôleur/niveleuse ne change de toute façon jamais entre deux poses.
     private static final int RESCAN_INTERVAL = 10;
 
     private static int scanCooldown = 0;
@@ -140,8 +144,12 @@ public class GhostRenderer {
                     continue;
                 }
                 for (BlockEntity be : chunk.getBlockEntities().values()) {
+                    // Distance à la boîte RÉSERVÉE (bâtiment + marge), pas au bloc contrôleur lui-même :
+                    // sur un grand bâtiment, le joueur peut être à côté d'un mur mais à plus de RENDER_RADIUS
+                    // du contrôleur — le fantôme doit quand même rester visible tant qu'on est près de la
+                    // structure qu'il matérialise.
                     if (be instanceof ControllerBlockEntity controller
-                            && controller.getBlockPos().distToCenterSqr(cam.x, cam.y, cam.z) <= radiusSqr) {
+                            && distToBoxSqr(controller.reservedBox(), cam) <= radiusSqr) {
                         controllers.add(controller);
                     } else if (be instanceof LevelerBlockEntity leveler
                             && leveler.getBlockPos().distToCenterSqr(cam.x, cam.y, cam.z) <= radiusSqr) {
@@ -152,5 +160,13 @@ public class GhostRenderer {
         }
         cachedControllers = controllers;
         cachedLevelers = levelers;
+    }
+
+    /** Distance au carré entre {@code point} et le point le plus proche de {@code box} (0 si à l'intérieur). */
+    private static double distToBoxSqr(AABB box, Vec3 point) {
+        double dx = Math.max(0, Math.max(box.minX - point.x, point.x - box.maxX));
+        double dy = Math.max(0, Math.max(box.minY - point.y, point.y - box.maxY));
+        double dz = Math.max(0, Math.max(box.minZ - point.z, point.z - box.maxZ));
+        return dx * dx + dy * dy + dz * dz;
     }
 }

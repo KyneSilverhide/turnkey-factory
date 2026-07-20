@@ -88,7 +88,7 @@ public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
             theme = Theme.STONE; roof = RoofType.FLAT;
         }
 
-        // Colonne gauche : dimensions (largeur/longueur impaires [7..31], hauteur pas de 1 [7..32])
+        // Colonne gauche : dimensions (largeur/longueur impaires [7..63], hauteur pas de 1 [7..64])
         horizontalRow(0, Y_ROW1, () -> w, v -> w = v);
         horizontalRow(0, Y_ROW2, () -> l, v -> l = v);
         heightRow(0, Y_ROW3, () -> h, v -> h = v);

@@ -47,7 +47,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -57,14 +59,14 @@ import java.util.function.Predicate;
 
 public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
     public static final int MIN_SIZE = 7;          // minimum commun aux 3 dimensions
-    public static final int MAX_HORIZONTAL = 31;   // largeur/longueur : impair, donc max 31
-    public static final int MAX_HEIGHT = 32;       // hauteur : pas par 1
+    public static final int MAX_HORIZONTAL = 63;   // largeur/longueur : impair, donc max 63 (borne demandée : 64)
+    public static final int MAX_HEIGHT = 64;       // hauteur : pas par 1
     public static final int HORIZONTAL_STEP = 2;   // largeur/longueur : seulement des valeurs impaires
     public static final int OFFSET_MAX = 15;
 
     private static final int SCAN_INTERVAL = 20;      // ticks entre deux scans (1 s)
     private static final int MAX_COLLISIONS = 64;     // nombre de blocs en collision renvoyés au client
-    private static final int MAX_FLOOR_PREVIEW = 1024; // couvre l'empreinte max (31×31 = 961)
+    private static final int MAX_FLOOR_PREVIEW = 4096; // couvre l'empreinte max (63×63 = 3969)
     private static final int BUILD_PER_TICK = 32;     // blocs posés par tick pendant la construction
 
     private int width = 7, length = 7, height = 7;
@@ -127,14 +129,14 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
         onConfigChanged();
     }
 
-    /** Largeur/longueur : bornées [7, 31] et forcées impaires. */
+    /** Largeur/longueur : bornées [7, 63] et forcées impaires. */
     public static int clampHorizontal(int v) {
         int c = Math.max(MIN_SIZE, Math.min(MAX_HORIZONTAL, v));
         if (c % 2 == 0) c--;   // ramène à la valeur impaire inférieure (reste >= 7)
         return c;
     }
 
-    /** Hauteur : bornée [7, 32], pas de 1. */
+    /** Hauteur : bornée [7, 64], pas de 1. */
     public static int clampHeight(int v) {
         return Math.max(MIN_SIZE, Math.min(MAX_HEIGHT, v));
     }
@@ -582,14 +584,29 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
         syncToClient();
     }
 
+    /**
+     * Construit jusqu'à {@link #BUILD_PER_TICK} blocs. Un item manquant NE bloque PLUS toute la file :
+     * on continue de parcourir les placements suivants (queue = {@link BuildPlanner#order}, murs puis
+     * vitres en dernier — cf. {@link BuildPlanner#order}) et on ne saute que ceux qui dépendent
+     * spécifiquement de l'item manquant. Sans ça, une simple pénurie de cobblestone au milieu des murs
+     * empêchait TOUTES les vitres (placées après, en toute fin de file) d'être posées, alors que le
+     * verre était disponible — cf. retour de test.
+     */
     private void tickBuild(ServerLevel server) {
         BlockPos[] shell = buildingMinMax();
         int placed = 0;
-        while (placed < BUILD_PER_TICK && !buildQueue.isEmpty()) {
-            BuildPlanner.Placement p = buildQueue.peek();
+        // Disponibilité par item, mise en cache pour ce tick : évite de rescanner les inventaires liés à
+        // chaque placement bloqué par le même item manquant (potentiellement des milliers sur un grand
+        // bâtiment), tout en restant exacte au fur et à mesure que les placements réussis consomment.
+        Map<Item, Integer> available = new HashMap<>();
+        Item firstMissing = null;
+
+        Iterator<BuildPlanner.Placement> it = buildQueue.iterator();
+        while (placed < BUILD_PER_TICK && it.hasNext()) {
+            BuildPlanner.Placement p = it.next();
 
             if (p.pos().equals(getBlockPos())) { // ne JAMAIS écraser le contrôleur lui-même
-                buildQueue.poll();
+                it.remove();
                 continue;
             }
 
@@ -597,7 +614,7 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
             BlockState current = server.getBlockState(p.pos());
 
             if (current == target) {           // déjà bon (souvent air == air) : on saute
-                buildQueue.poll();
+                it.remove();
                 continue;
             }
 
@@ -608,13 +625,13 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
             // protéger via Forcer/Ignorer — contrairement à la coque, l'élément décoratif n'en vaut pas
             // la peine : on l'abandonne simplement.
             if (!inShell(p.pos(), shell) && isObstructing(current)) {
-                buildQueue.poll();
+                it.remove();
                 continue;
             }
 
             if (target.isAir()) {              // dégagement : aucun matériau requis
                 server.setBlock(p.pos(), target, Block.UPDATE_ALL);
-                buildQueue.poll();
+                it.remove();
                 placed++;
                 continue;
             }
@@ -622,29 +639,31 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
             Map<Item, Integer> cost = (creativeBuild || currentFree().contains(p.pos())) ? Map.of() : CostModel.costOf(target);
             if (cost.isEmpty()) {              // aucun coût (créatif, libre, ou purement décoratif) : posé librement
                 server.setBlock(p.pos(), target, Block.UPDATE_ALL);
-                buildQueue.poll();
+                it.remove();
                 placed++;
                 continue;
             }
 
-            Item missing = consumeCost(server, cost);
+            Item missing = tryConsume(server, cost, available);
             if (missing == null) {
                 server.setBlock(p.pos(), target, Block.UPDATE_ALL);
-                buildQueue.poll();
+                it.remove();
                 placed++;
-                if (!waitingFor.isEmpty()) {
-                    waitingFor = ItemStack.EMPTY;
-                    syncToClient();
-                }
-            } else {
-                // ressource de base manquante : pause jusqu'au réapprovisionnement
-                if (waitingFor.isEmpty() || !waitingFor.is(missing)) {
-                    waitingFor = new ItemStack(missing);
-                    syncToClient();
-                }
-                return;
+            } else if (firstMissing == null) {
+                firstMissing = missing; // on continue : cet item manquant ne doit pas bloquer le reste de la file
             }
         }
+
+        if (firstMissing != null) {
+            if (waitingFor.isEmpty() || !waitingFor.is(firstMissing)) {
+                waitingFor = new ItemStack(firstMissing);
+                syncToClient();
+            }
+        } else if (!waitingFor.isEmpty()) {
+            waitingFor = ItemStack.EMPTY;
+            syncToClient();
+        }
+
         if (buildQueue.isEmpty()) {
             fixupConnections(server); // raccorde vitres/murs maintenant que tous les voisins existent
             waitingFor = ItemStack.EMPTY;
@@ -678,19 +697,26 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     /**
-     * Consomme un coût (plusieurs items possibles) dans les inventaires liés, en tout-ou-rien.
-     * Renvoie null si tout a été prélevé, sinon le premier item manquant.
+     * Consomme un coût (plusieurs items possibles) dans les inventaires liés, en tout-ou-rien, via un
+     * cache de disponibilité {@code available} partagé sur tout un {@link #tickBuild}. La disponibilité
+     * réelle n'est interrogée qu'une fois par item (première rencontre) puis tenue à jour localement au
+     * fil des prélèvements — sans ça, reparcourir les inventaires liés pour CHAQUE placement bloqué par
+     * le même item manquant serait bien trop coûteux sur un grand bâtiment (potentiellement des milliers
+     * de placements en attente du même matériau). Renvoie null si tout a été prélevé, sinon le premier
+     * item manquant.
      */
-    private Item consumeCost(ServerLevel server, Map<Item, Integer> cost) {
-        // Phase 1 : vérifier la disponibilité de chaque composant.
+    private Item tryConsume(ServerLevel server, Map<Item, Integer> cost, Map<Item, Integer> available) {
+        // Phase 1 : vérifier la disponibilité de chaque composant (via le cache).
         for (Map.Entry<Item, Integer> e : cost.entrySet()) {
-            if (countAvailable(server, e.getKey()) < e.getValue()) {
+            int avail = available.computeIfAbsent(e.getKey(), item -> countAvailable(server, item));
+            if (avail < e.getValue()) {
                 return e.getKey();
             }
         }
-        // Phase 2 : prélever (la disponibilité est garantie).
+        // Phase 2 : prélever (la disponibilité est garantie) et mettre le cache à jour.
         for (Map.Entry<Item, Integer> e : cost.entrySet()) {
             extract(server, e.getKey(), e.getValue());
+            available.merge(e.getKey(), -e.getValue(), Integer::sum);
         }
         return null;
     }
