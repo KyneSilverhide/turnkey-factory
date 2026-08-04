@@ -1,13 +1,17 @@
 package dev.aurelien.prefab.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlockEntity;
 import dev.aurelien.prefab.block.LevelerBlockEntity;
 import dev.aurelien.prefab.block.TexturizerBlockEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -21,6 +25,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +47,50 @@ public class GhostRenderer {
     private static List<ControllerBlockEntity> cachedControllers = List.of();
     private static List<LevelerBlockEntity> cachedLevelers = List.of();
     private static List<TexturizerBlockEntity> cachedTexturizers = List.of();
+
+    /**
+     * Variante de {@link RenderType#lines()} qui ignore le tampon de profondeur (test « toujours vrai »,
+     * pas d'écriture) : les blocs d'obstruction du contrôleur sont souvent enterrés (fondation, blocs
+     * cachés sous terre) et un contour testé en profondeur normale y serait invisible, masqué par le
+     * terrain — l'utilisateur ne peut alors jamais localiser le bloc fautif. Ce contour-là reste donc
+     * visible EN PERMANENCE à travers tout le reste du monde, comme un rayon X, uniquement pour les
+     * indicateurs de problème (jamais pour les contours « tout va bien »).
+     */
+    private static final RenderType OBSTRUCTION_LINES = new RenderType(
+            "prefab_obstruction_lines",
+            DefaultVertexFormat.POSITION_COLOR_NORMAL,
+            VertexFormat.Mode.LINES,
+            256,
+            false,
+            false,
+            () -> {
+                RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
+                RenderSystem.lineWidth(2.5F);
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                RenderSystem.enableDepthTest();
+                RenderSystem.depthFunc(GL11.GL_ALWAYS);
+                RenderSystem.depthMask(false);
+                RenderSystem.disableCull();
+                // Même cible que RenderType.lines() (ITEM_ENTITY_TARGET) : en graphismes « fabuleux », les
+                // lignes normales du fantôme sont composées depuis ce tampon à part — sans ce même binding,
+                // nos lignes « à travers les murs » dessineraient sur la cible principale et se feraient
+                // recouvrir par cette composition plus tard, annulant l'effet.
+                if (Minecraft.useShaderTransparency()) {
+                    Minecraft.getInstance().levelRenderer.getItemEntityTarget().bindWrite(false);
+                }
+            },
+            () -> {
+                RenderSystem.lineWidth(1.0F);
+                RenderSystem.disableBlend();
+                RenderSystem.depthMask(true);
+                RenderSystem.depthFunc(GL11.GL_LEQUAL);
+                RenderSystem.enableCull();
+                if (Minecraft.useShaderTransparency()) {
+                    Minecraft.getInstance().getMainRenderTarget().bindWrite(false);
+                }
+            }
+    ) {};
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
@@ -87,21 +136,11 @@ public class GhostRenderer {
             // Bâtiment (coque) : vert si libre, rouge si obstrué.
             LevelRenderer.renderLineBox(pose, vc, be.innerBox(), r, g, 0.3f, 0.9f);
 
-            for (BlockPos p : be.collisions()) {
-                AABB cell = new AABB(p).deflate(0.02);
-                LevelRenderer.renderLineBox(pose, vc, cell, 1.0f, 0.1f, 0.1f, 1.0f);
-            }
-
             // Sol de l'usine : remplace la couche de terrain existante, donc on montre CHAQUE cellule qui
-            // va disparaître — vert si c'est du terrain naturel (attendu), rouge sinon (probablement posé
-            // par un joueur, cf. NaturalTerrain.isNaturalGround).
+            // va disparaître — vert si c'est du terrain naturel (attendu, contour normal suffit).
             for (BlockPos p : be.floorSafe()) {
                 AABB cell = new AABB(p).deflate(0.02);
                 LevelRenderer.renderLineBox(pose, vc, cell, 0.3f, 1.0f, 0.3f, 0.6f);
-            }
-            for (BlockPos p : be.floorUnsafe()) {
-                AABB cell = new AABB(p).deflate(0.02);
-                LevelRenderer.renderLineBox(pose, vc, cell, 1.0f, 0.1f, 0.1f, 1.0f);
             }
         }
 
@@ -132,8 +171,30 @@ public class GhostRenderer {
             }
         }
 
-        pose.popPose();
+        // Flush du tampon "vc" AVANT de démarrer le second (RenderType différent) : getBuffer() sur un
+        // nouveau type shared termine implicitement le batch précédent, donc réutiliser "vc" après ce
+        // point planterait (BufferBuilder déjà finalisé). D'où cette passe forcément en dernier.
         buffers.endBatch(RenderType.lines());
+
+        // Deuxième passe, tampon à part : les indicateurs de PROBLÈME du contrôleur (obstruction réelle,
+        // sol à remplacer suspect) en rouge, rendus à travers le terrain — sans ça, un bloc d'obstruction
+        // enterré sous une couche de terre est strictement invisible et le joueur ne peut jamais le
+        // localiser (cf. retour utilisateur : « il indique des obstructions mais je ne les vois pas »).
+        VertexConsumer vcThrough = buffers.getBuffer(OBSTRUCTION_LINES);
+        for (ControllerBlockEntity be : controllers) {
+            if (be.isRemoved()) continue;
+            for (BlockPos p : be.collisions()) {
+                AABB cell = new AABB(p).deflate(0.02);
+                LevelRenderer.renderLineBox(pose, vcThrough, cell, 1.0f, 0.1f, 0.1f, 1.0f);
+            }
+            for (BlockPos p : be.floorUnsafe()) {
+                AABB cell = new AABB(p).deflate(0.02);
+                LevelRenderer.renderLineBox(pose, vcThrough, cell, 1.0f, 0.1f, 0.1f, 1.0f);
+            }
+        }
+        buffers.endBatch(OBSTRUCTION_LINES);
+
+        pose.popPose();
     }
 
     /**

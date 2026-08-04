@@ -3,6 +3,7 @@ package dev.aurelien.prefab.build;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BushBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Set;
@@ -28,6 +29,11 @@ public final class NaturalTerrain {
         if (s.is(BlockTags.LOGS) || s.is(BlockTags.LEAVES) || s.is(BlockTags.SAPLINGS)
                 || s.is(BlockTags.FLOWERS) || s.is(BlockTags.CROPS)
                 || s.is(BlockTags.CORAL_BLOCKS) || s.is(BlockTags.WART_BLOCKS) || s.is(BlockTags.NYLIUM)) return true;
+        // Plantes moddées non couvertes par les tags vanilla ci-dessus (ex. cultures « sauvages » de
+        // Farmer's Delight, qui ne sont PAS dans minecraft:crops) : BushBlock est la classe de base
+        // commune à quasi toute la petite flore, vanilla ou moddée (cultures, fleurs, jeunes pousses,
+        // herbes, buissons de baies, champignons…), donc bien plus fiable ici qu'un tag par mod.
+        if (s.getBlock() instanceof BushBlock) return true;
         // Glace, neige
         if (s.is(BlockTags.ICE) || s.is(BlockTags.SNOW)) return true;
 

@@ -32,7 +32,7 @@ public final class BuildPlanner {
     public record Placement(BlockPos pos, BlockState state) {}
 
     // Porte (façade avant ET arrière — les deux murs le long de l'axe de {@code facing})
-    private static final int DOOR_HALF_WIDTH = 1; // 3 blocs de large
+    static final int DOOR_HALF_WIDTH = 1; // 3 blocs de large ; visible d'ExteriorDecorator (marches d'entrée)
     private static final int DOOR_HEIGHT = 4;     // 4 blocs de haut
     // Fenêtres (pavage horizontal et vertical du corps)
     private static final int WINDOW_H_SPACING = 4;

@@ -362,7 +362,9 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
         BlockPos s = controller
                 .relative(facing, 1 + ExteriorDecorator.MARGIN)   // devant, au-delà de la marge réservée
                 .relative(lateral.getOpposite(), (width - 1) / 2) // centré latéralement
-                .below(1)                                         // le sol remplace la couche du terrain sous le contrôleur, pas celle à ses pieds
+                // Sol au niveau du contrôleur (donc 1 bloc plus haut que le sol extérieur) : la marche
+                // franchie par les escaliers d'entrée (cf. ExteriorDecorator#entranceStairs) plutôt qu'un
+                // sol flush qui empiétait sur la couche de terrain sous le contrôleur lui-même.
                 .offset(offX, offY, offZ);                        // décalage joueur
         BlockPos e = s
                 .relative(facing, length - 1)
@@ -539,6 +541,11 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
     public boolean startBuild(boolean creative, BuildStartMode mode) {
         if (!(level instanceof ServerLevel server)) return false;
         if (!buildQueue.isEmpty()) return false;
+        // Aucune source de matériau en survie : refuser le démarrage plutôt que de laisser la file se
+        // remplir et poser quand même les éléments purement décoratifs (colonnes…), gratuits par nature
+        // (cf. currentFree()) — sans ça, Forcer/Ignorer construisait une coquille partielle que rien ne
+        // pouvait jamais compléter, sans qu'aucun matériau ne soit prélevé nulle part (retour utilisateur).
+        if (!creative && linked.isEmpty()) return false;
 
         ghostSuppressed = false;       // force une vraie vérification du site
         recomputeCollisions(server);
@@ -564,6 +571,14 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
     /** Reprend une construction interrompue par un rechargement : on recalcule le plan ; tickBuild saute le déjà-posé. */
     private void resumeBuild() {
         if (!buildQueue.isEmpty() || !(level instanceof ServerLevel server)) return;
+        // Même garde qu'au démarrage (cf. startBuild) : si les coffres liés ont disparu entre-temps (ou
+        // n'ont jamais existé pour cette construction), ne pas relancer la file — sinon le balayage
+        // reprendrait quand même les éléments gratuits sans jamais pouvoir poser le reste.
+        if (!creativeBuild && linked.isEmpty()) {
+            buildRemainingClient = 0; // évite un statut « en construction » figé indéfiniment côté client
+            syncToClient();
+            return;
+        }
         List<BuildPlanner.Placement> order = BuildPlanner.order(currentPlan());
         if (ignoreObstacles) { // même filtre qu'au démarrage (cf. startBuild), réappliqué sur l'état actuel du monde
             BlockPos[] shell = buildingMinMax();

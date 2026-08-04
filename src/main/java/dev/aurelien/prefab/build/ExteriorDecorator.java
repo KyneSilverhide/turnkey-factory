@@ -52,6 +52,7 @@ public final class ExteriorDecorator {
                                 Direction facing, RoofType roofType, BuildStyle style, BlockPos controller, Theme theme,
                                 Set<BlockPos> free) {
         columns(map, bMin, bMax, facing, roofType, style, controller, free); // 1) colonnes (cassent le rectangle)
+        entranceStairs(map, bMin, bMax, facing, style, free); // 1bis) marches devant les deux portes
         sideWallDecor(map, bMin, bMax, facing);               // 2) déco murale au sol : caisses + végétation
         wallSilos(map, bMin, bMax, facing);                   // 3) cuves/silos Create (colonnes), dans les gaps
         wallGreebles(map, bMin, bMax, facing);                // 4) greebles Create : jauges + volants
@@ -139,6 +140,39 @@ public final class ExteriorDecorator {
                 .setValue(BlockStateProperties.HORIZONTAL_FACING, inward)
                 .setValue(BlockStateProperties.HALF, Half.BOTTOM));
         free.add(cap);
+    }
+
+    /**
+     * Marche d'entrée : un rang d'escaliers (palette {@code trimStair}, large comme la porte) juste
+     * devant chacune des DEUX portes, pour franchir le bloc de dénivelé entre le sol extérieur et le
+     * sol intérieur (surélevé d'un cran par défaut, cf. {@code ControllerBlockEntity#buildingMinMax}).
+     * {@code frontOfDoor}/{@code DOOR_CLEAR} tiennent déjà les colonnes à l'écart de ces cellules.
+     */
+    private static void entranceStairs(Map<BlockPos, BlockState> map, BlockPos bMin, BlockPos bMax,
+                                       Direction facing, BuildStyle style, Set<BlockPos> free) {
+        int y = bMin.getY();
+        int cx = (bMin.getX() + bMax.getX()) / 2, cz = (bMin.getZ() + bMax.getZ()) / 2;
+        boolean depthIsZ = facing.getAxis() == Direction.Axis.Z;
+        Direction[] doorFaces = depthIsZ
+                ? new Direction[]{Direction.NORTH, Direction.SOUTH}
+                : new Direction[]{Direction.WEST, Direction.EAST};
+        for (Direction out : doorFaces) {
+            int wallCoord = switch (out) {
+                case NORTH -> bMin.getZ();
+                case SOUTH -> bMax.getZ();
+                case WEST -> bMin.getX();
+                default -> bMax.getX(); // EAST
+            };
+            int stepCoord = wallCoord + out.getStepX() + out.getStepZ(); // 1 cran hors du mur
+            Direction ascend = out.getOpposite(); // on monte en marchant VERS le bâtiment
+            for (int c = -BuildPlanner.DOOR_HALF_WIDTH; c <= BuildPlanner.DOOR_HALF_WIDTH; c++) {
+                BlockPos p = depthIsZ ? new BlockPos(cx + c, y, stepCoord) : new BlockPos(stepCoord, y, cz + c);
+                map.put(p, style.trimStair().pick(p)
+                        .setValue(BlockStateProperties.HORIZONTAL_FACING, ascend)
+                        .setValue(BlockStateProperties.HALF, Half.BOTTOM));
+                free.add(p);
+            }
+        }
     }
 
     /**

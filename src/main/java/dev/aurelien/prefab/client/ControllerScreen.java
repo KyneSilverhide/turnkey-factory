@@ -203,6 +203,10 @@ public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
         int linked = be != null ? be.linkedCount() : 0;
         boolean obstructed = be != null && be.isObstructed();
         boolean building = be != null && be.isBuilding();
+        // Créatif : aucun matériau requis, donc pas besoin d'inventaire lié. Survie sans rien de lié :
+        // rien à construire, cf. ControllerBlockEntity#startBuild — les boutons de démarrage restent
+        // visibles (le joueur doit pouvoir le CONSTATER) mais inertes plutôt que de sembler fonctionner.
+        boolean hasSource = linked > 0 || (minecraft != null && minecraft.player != null && minecraft.player.isCreative());
 
         // Colonne 3 : ressources requises (icône + quantité, manquant en surbrillance), tooltip au survol.
         g.drawString(font, Component.translatable("gui.turnkey_factory.controller.materials"), leftPos + PANEL3_X, topPos + Y_HEADER, 0xC0C0FF, false);
@@ -251,18 +255,18 @@ public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
         }
         g.drawString(font, status, lx, topPos + Y_STATUS, statusColor, false);
 
-        if (buildButton != null) buildButton.active = !building && !obstructed;
+        if (buildButton != null) buildButton.active = !building && !obstructed && hasSource;
         if (cancelButton != null) {
             cancelButton.visible = building;
             cancelButton.active = building;
         }
         if (forceButton != null) {
             forceButton.visible = !building && obstructed;
-            forceButton.active = !building && obstructed;
+            forceButton.active = !building && obstructed && hasSource;
         }
         if (ignoreButton != null) {
             ignoreButton.visible = !building && obstructed;
-            ignoreButton.active = !building && obstructed;
+            ignoreButton.active = !building && obstructed && hasSource;
         }
         if (themeButton != null) {
             themeButton.setMessage(themeLabel());

@@ -80,9 +80,10 @@ public final class BuildStyles {
      * la brique n'apparaissant qu'en bandes/accents pour garder l'identité visuelle « usine en brique ».
      */
     private static BuildStyle brickStyle() {
-        // Mur : granite/andésite dominants, brique rouge en accent (~40 %). Si Create Deco est présent,
-        // on mouchette de variantes de brique rouge (mêmes tons, appareils différents → casse la
-        // monotonie). Absent : tout retombe sur la brique vanilla (rendu inchangé, juste moins fréquent).
+        // Mur : granite dominant, brique rouge en accent (~40 %). L'andésite reste réservée au
+        // soubassement (palette foundation, 1re rangée) : pas de mouchetage ici. Si Create Deco est
+        // présent, on mouchette de variantes de brique rouge (mêmes tons, appareils différents → casse
+        // la monotonie). Absent : tout retombe sur la brique vanilla (rendu inchangé, juste moins fréquent).
         Palette wall = Palette.builder()
                 .add(state(Blocks.BRICKS), 5)
                 .add(resolve("createdeco:long_red_bricks", Blocks.BRICKS), 1)
@@ -92,7 +93,6 @@ public final class BuildStyles {
                 .add(resolve("createdeco:dean_bricks", Blocks.BRICKS), 1)   // patch d'accent chaud
                 .add(state(Blocks.GRANITE), 6)
                 .add(state(Blocks.POLISHED_GRANITE), 3)
-                .add(state(Blocks.ANDESITE), 1)
                 .build();
 
         // Premier niveau (soubassement) : variantes d'andésite uniquement (pas de smooth stone).
