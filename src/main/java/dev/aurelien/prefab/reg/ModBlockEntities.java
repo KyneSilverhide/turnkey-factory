@@ -3,6 +3,7 @@ package dev.aurelien.prefab.reg;
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlockEntity;
 import dev.aurelien.prefab.block.LevelerBlockEntity;
+import dev.aurelien.prefab.block.TexturizerBlockEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -20,4 +21,8 @@ public class ModBlockEntities {
     public static final Supplier<BlockEntityType<LevelerBlockEntity>> LEVELER =
             BLOCK_ENTITIES.register("leveler", () ->
                     BlockEntityType.Builder.of(LevelerBlockEntity::new, ModBlocks.LEVELER.get()).build(null));
+
+    public static final Supplier<BlockEntityType<TexturizerBlockEntity>> TEXTURIZER =
+            BLOCK_ENTITIES.register("texturizer", () ->
+                    BlockEntityType.Builder.of(TexturizerBlockEntity::new, ModBlocks.TEXTURIZER.get()).build(null));
 }

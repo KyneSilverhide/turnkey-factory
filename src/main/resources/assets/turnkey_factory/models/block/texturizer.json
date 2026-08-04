@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "turnkey_factory:block/texturizer_top",
+    "bottom": "turnkey_factory:block/texturizer_bottom",
+    "side": "turnkey_factory:block/texturizer_side"
+  }
+}

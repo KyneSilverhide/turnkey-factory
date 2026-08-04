@@ -3,6 +3,7 @@ package dev.aurelien.prefab.reg;
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.menu.ControllerMenu;
 import dev.aurelien.prefab.menu.LevelerMenu;
+import dev.aurelien.prefab.menu.TexturizerMenu;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
@@ -19,4 +20,7 @@ public class ModMenus {
 
     public static final Supplier<MenuType<LevelerMenu>> LEVELER =
             MENUS.register("leveler", () -> IMenuTypeExtension.create(LevelerMenu::new));
+
+    public static final Supplier<MenuType<TexturizerMenu>> TEXTURIZER =
+            MENUS.register("texturizer", () -> IMenuTypeExtension.create(TexturizerMenu::new));
 }

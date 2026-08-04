@@ -20,6 +20,7 @@ public class ModCreativeTabs {
             .displayItems((params, output) -> {
                 output.accept(ModItems.CONTROLLER.get());
                 output.accept(ModItems.LEVELER.get());
+                output.accept(ModItems.TEXTURIZER.get());
                 output.accept(ModItems.ARCHITECT_BLUEPRINT.get());
                 output.accept(ModItems.CONTROL_CORE.get());
             })

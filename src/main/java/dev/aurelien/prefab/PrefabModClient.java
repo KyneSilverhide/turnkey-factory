@@ -2,6 +2,7 @@ package dev.aurelien.prefab;
 
 import dev.aurelien.prefab.client.ControllerScreen;
 import dev.aurelien.prefab.client.LevelerScreen;
+import dev.aurelien.prefab.client.TexturizerScreen;
 import dev.aurelien.prefab.reg.ModMenus;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -14,5 +15,6 @@ public class PrefabModClient {
     public static void registerScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.CONTROLLER.get(), ControllerScreen::new);
         event.register(ModMenus.LEVELER.get(), LevelerScreen::new);
+        event.register(ModMenus.TEXTURIZER.get(), TexturizerScreen::new);
     }
 }

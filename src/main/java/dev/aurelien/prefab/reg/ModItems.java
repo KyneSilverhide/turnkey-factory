@@ -15,6 +15,9 @@ public class ModItems {
     public static final DeferredItem<BlockItem> LEVELER =
             ITEMS.registerSimpleBlockItem("leveler", ModBlocks.LEVELER);
 
+    public static final DeferredItem<BlockItem> TEXTURIZER =
+            ITEMS.registerSimpleBlockItem("texturizer", ModBlocks.TEXTURIZER);
+
     // Composants intermédiaires de la recette du bloc de contrôle.
     /** Plan d'architecte (papier + lapis) : la « mémoire de plan » du bloc de contrôle. */
     public static final DeferredItem<Item> ARCHITECT_BLUEPRINT = ITEMS.registerSimpleItem("architect_blueprint");

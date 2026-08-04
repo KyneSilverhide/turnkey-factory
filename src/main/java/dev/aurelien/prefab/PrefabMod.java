@@ -7,6 +7,9 @@ import dev.aurelien.prefab.network.SetLevelerDimsPayload;
 import dev.aurelien.prefab.network.SetLevelerTargetPayload;
 import dev.aurelien.prefab.network.SetOffsetPayload;
 import dev.aurelien.prefab.network.SetStylePayload;
+import dev.aurelien.prefab.network.SetTexturizerCoarseDirtPayload;
+import dev.aurelien.prefab.network.SetTexturizerRadiusPayload;
+import dev.aurelien.prefab.network.TexturizerActionPayload;
 import dev.aurelien.prefab.reg.ModBlockEntities;
 import dev.aurelien.prefab.reg.ModBlocks;
 import dev.aurelien.prefab.reg.ModCreativeTabs;
@@ -41,5 +44,8 @@ public class PrefabMod {
         registrar.playToServer(SetLevelerDimsPayload.TYPE, SetLevelerDimsPayload.STREAM_CODEC, SetLevelerDimsPayload::handle);
         registrar.playToServer(SetLevelerTargetPayload.TYPE, SetLevelerTargetPayload.STREAM_CODEC, SetLevelerTargetPayload::handle);
         registrar.playToServer(LevelerActionPayload.TYPE, LevelerActionPayload.STREAM_CODEC, LevelerActionPayload::handle);
+        registrar.playToServer(SetTexturizerRadiusPayload.TYPE, SetTexturizerRadiusPayload.STREAM_CODEC, SetTexturizerRadiusPayload::handle);
+        registrar.playToServer(SetTexturizerCoarseDirtPayload.TYPE, SetTexturizerCoarseDirtPayload.STREAM_CODEC, SetTexturizerCoarseDirtPayload::handle);
+        registrar.playToServer(TexturizerActionPayload.TYPE, TexturizerActionPayload.STREAM_CODEC, TexturizerActionPayload::handle);
     }
 }

@@ -3,6 +3,7 @@ package dev.aurelien.prefab.reg;
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlock;
 import dev.aurelien.prefab.block.LevelerBlock;
+import dev.aurelien.prefab.block.TexturizerBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.neoforge.registries.DeferredBlock;
@@ -25,6 +26,15 @@ public class ModBlocks {
             LevelerBlock::new,
             BlockBehaviour.Properties.of()
                     .mapColor(MapColor.DIRT)
+                    .strength(3.0F)
+                    .requiresCorrectToolForDrops()
+    );
+
+    public static final DeferredBlock<TexturizerBlock> TEXTURIZER = BLOCKS.registerBlock(
+            "texturizer",
+            TexturizerBlock::new,
+            BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.STONE)
                     .strength(3.0F)
                     .requiresCorrectToolForDrops()
     );

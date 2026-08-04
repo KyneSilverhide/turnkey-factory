@@ -34,6 +34,25 @@ public final class NaturalTerrain {
         return NATURAL_BLOCKS.contains(s.getBlock());
     }
 
+    /**
+     * Vrai si {@code s} est un bloc de SURFACE naturel (terre, sable, roche de base, neige, glace…),
+     * sans les minerais ni la végétation (troncs, feuilles, fleurs…) que couvre
+     * {@link #isNaturalGround}. Sert au texturiseur : il ne remplace que le sol proprement dit, jamais
+     * un arbre ou un minerai qui reposerait dessus.
+     */
+    public static boolean isSurfaceGround(BlockState s) {
+        if (s.is(BlockTags.DIRT) || s.is(BlockTags.SAND) || s.is(BlockTags.TERRACOTTA)
+                || s.is(BlockTags.BASE_STONE_OVERWORLD) || s.is(BlockTags.BASE_STONE_NETHER)
+                || s.is(BlockTags.ICE) || s.is(BlockTags.SNOW) || s.is(BlockTags.NYLIUM)) return true;
+        return SURFACE_BLOCKS.contains(s.getBlock());
+    }
+
+    /** Blocs de surface supplémentaires non couverts par les tags ci-dessus. */
+    private static final Set<Block> SURFACE_BLOCKS = Set.of(
+            Blocks.GRAVEL, Blocks.CLAY, Blocks.MUD, Blocks.MOSS_BLOCK,
+            Blocks.SOUL_SAND, Blocks.SOUL_SOIL, Blocks.CALCITE, Blocks.POWDER_SNOW
+    );
+
     /** Blocs naturels supplémentaires non couverts par les tags ci-dessus. */
     private static final Set<Block> NATURAL_BLOCKS = Set.of(
             Blocks.GRAVEL, Blocks.CLAY, Blocks.MUD, Blocks.MUDDY_MANGROVE_ROOTS, Blocks.MANGROVE_ROOTS,

@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlockEntity;
 import dev.aurelien.prefab.block.LevelerBlockEntity;
+import dev.aurelien.prefab.block.TexturizerBlockEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -40,6 +41,7 @@ public class GhostRenderer {
     private static ClientLevel cachedLevel = null;
     private static List<ControllerBlockEntity> cachedControllers = List.of();
     private static List<LevelerBlockEntity> cachedLevelers = List.of();
+    private static List<TexturizerBlockEntity> cachedTexturizers = List.of();
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
@@ -62,7 +64,8 @@ public class GhostRenderer {
 
         List<ControllerBlockEntity> controllers = cachedControllers;
         List<LevelerBlockEntity> levelers = cachedLevelers;
-        if (controllers.isEmpty() && levelers.isEmpty()) {
+        List<TexturizerBlockEntity> texturizers = cachedTexturizers;
+        if (controllers.isEmpty() && levelers.isEmpty() && texturizers.isEmpty()) {
             return;
         }
 
@@ -120,6 +123,15 @@ public class GhostRenderer {
             }
         }
 
+        for (TexturizerBlockEntity be : texturizers) {
+            if (be.isRemoved()) continue; // le cache n'est rafraîchi que toutes les RESCAN_INTERVAL frames
+            // Une boîte violette par cellule de sol à venir retexturer (fantôme, plafonné côté serveur).
+            for (BlockPos p : be.preview()) {
+                AABB cell = new AABB(p).deflate(0.02);
+                LevelRenderer.renderLineBox(pose, vc, cell, 0.7f, 0.3f, 1.0f, 0.8f);
+            }
+        }
+
         pose.popPose();
         buffers.endBatch(RenderType.lines());
     }
@@ -132,6 +144,7 @@ public class GhostRenderer {
     private static void rescan(ClientLevel level, Vec3 cam) {
         List<ControllerBlockEntity> controllers = new ArrayList<>();
         List<LevelerBlockEntity> levelers = new ArrayList<>();
+        List<TexturizerBlockEntity> texturizers = new ArrayList<>();
         int camChunkX = Mth.floor(cam.x) >> 4;
         int camChunkZ = Mth.floor(cam.z) >> 4;
         int chunkRadius = (RENDER_RADIUS >> 4) + 1;
@@ -154,12 +167,16 @@ public class GhostRenderer {
                     } else if (be instanceof LevelerBlockEntity leveler
                             && leveler.getBlockPos().distToCenterSqr(cam.x, cam.y, cam.z) <= radiusSqr) {
                         levelers.add(leveler);
+                    } else if (be instanceof TexturizerBlockEntity texturizer
+                            && texturizer.getBlockPos().distToCenterSqr(cam.x, cam.y, cam.z) <= radiusSqr) {
+                        texturizers.add(texturizer);
                     }
                 }
             }
         }
         cachedControllers = controllers;
         cachedLevelers = levelers;
+        cachedTexturizers = texturizers;
     }
 
     /** Distance au carré entre {@code point} et le point le plus proche de {@code box} (0 si à l'intérieur). */

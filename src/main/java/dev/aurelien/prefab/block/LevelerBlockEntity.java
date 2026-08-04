@@ -2,6 +2,7 @@ package dev.aurelien.prefab.block;
 
 import dev.aurelien.prefab.build.InventoryNetwork;
 import dev.aurelien.prefab.build.NaturalTerrain;
+import dev.aurelien.prefab.build.ToolDurability;
 import dev.aurelien.prefab.menu.LevelerMenu;
 import dev.aurelien.prefab.reg.ModBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -463,8 +464,7 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
 
     /** Consomme 1 point de durabilité sur l'outil donné (pelle ou pioche). Renvoie true s'il vient de casser. */
     private boolean damageTool(ServerLevel server, ItemStack tool) {
-        tool.hurtAndBreak(1, server, null, ignored -> {});
-        return tool.isEmpty();
+        return ToolDurability.damage(server, tool);
     }
 
     /** Vrai si retirer {@code state} à cette position avec {@code tool} rendrait au moins un item (table de butin réelle). */
