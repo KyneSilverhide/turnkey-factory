@@ -40,13 +40,13 @@ public class LevelerMenu extends AbstractContainerMenu {
         this.pos = pos;
         this.access = ContainerLevelAccess.create(inv.player.level(), pos);
 
-        addSlot(new Slot(container, SHOVEL_SLOT, 221, 110) {
+        addSlot(new Slot(container, SHOVEL_SLOT, 180, 52) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.is(ItemTags.SHOVELS);
             }
         });
-        addSlot(new Slot(container, PICKAXE_SLOT, 245, 110) {
+        addSlot(new Slot(container, PICKAXE_SLOT, 180, 74) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.is(ItemTags.PICKAXES);
@@ -55,11 +55,11 @@ public class LevelerMenu extends AbstractContainerMenu {
 
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(inv, col + row * 9 + 9, 74 + col * 18, 152 + row * 18));
+                addSlot(new Slot(inv, col + row * 9 + 9, 9 + col * 18, 150 + row * 18));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(inv, col, 74 + col * 18, 210));
+            addSlot(new Slot(inv, col, 9 + col * 18, 208));
         }
     }
 

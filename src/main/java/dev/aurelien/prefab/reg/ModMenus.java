@@ -2,6 +2,7 @@ package dev.aurelien.prefab.reg;
 
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.menu.ControllerMenu;
+import dev.aurelien.prefab.menu.LamplighterMenu;
 import dev.aurelien.prefab.menu.LevelerMenu;
 import dev.aurelien.prefab.menu.TexturizerMenu;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -23,4 +24,7 @@ public class ModMenus {
 
     public static final Supplier<MenuType<TexturizerMenu>> TEXTURIZER =
             MENUS.register("texturizer", () -> IMenuTypeExtension.create(TexturizerMenu::new));
+
+    public static final Supplier<MenuType<LamplighterMenu>> LAMPLIGHTER =
+            MENUS.register("lamplighter", () -> IMenuTypeExtension.create(LamplighterMenu::new));
 }

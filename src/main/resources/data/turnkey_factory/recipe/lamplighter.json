@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "ILI",
+    "ICI",
+    "III"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "L": { "item": "minecraft:lantern" },
+    "C": { "item": "minecraft:chain" }
+  },
+  "result": {
+    "id": "turnkey_factory:lamplighter",
+    "count": 1
+  }
+}

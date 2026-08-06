@@ -2,6 +2,7 @@ package dev.aurelien.prefab.reg;
 
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlock;
+import dev.aurelien.prefab.block.LamplighterBlock;
 import dev.aurelien.prefab.block.LevelerBlock;
 import dev.aurelien.prefab.block.TexturizerBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -35,6 +36,15 @@ public class ModBlocks {
             TexturizerBlock::new,
             BlockBehaviour.Properties.of()
                     .mapColor(MapColor.STONE)
+                    .strength(3.0F)
+                    .requiresCorrectToolForDrops()
+    );
+
+    public static final DeferredBlock<LamplighterBlock> LAMPLIGHTER = BLOCKS.registerBlock(
+            "lamplighter",
+            LamplighterBlock::new,
+            BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
                     .strength(3.0F)
                     .requiresCorrectToolForDrops()
     );

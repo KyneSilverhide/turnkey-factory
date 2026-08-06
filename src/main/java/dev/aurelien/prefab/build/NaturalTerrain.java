@@ -56,7 +56,8 @@ public final class NaturalTerrain {
     /** Blocs de surface supplémentaires non couverts par les tags ci-dessus. */
     private static final Set<Block> SURFACE_BLOCKS = Set.of(
             Blocks.GRAVEL, Blocks.CLAY, Blocks.MUD, Blocks.MOSS_BLOCK,
-            Blocks.SOUL_SAND, Blocks.SOUL_SOIL, Blocks.CALCITE, Blocks.POWDER_SNOW
+            Blocks.SOUL_SAND, Blocks.SOUL_SOIL, Blocks.CALCITE, Blocks.POWDER_SNOW,
+            Blocks.SANDSTONE, Blocks.RED_SANDSTONE
     );
 
     /** Blocs naturels supplémentaires non couverts par les tags ci-dessus. */
@@ -70,6 +71,7 @@ public final class NaturalTerrain {
             Blocks.HANGING_ROOTS, Blocks.SPORE_BLOSSOM, Blocks.BROWN_MUSHROOM_BLOCK, Blocks.RED_MUSHROOM_BLOCK,
             Blocks.MUSHROOM_STEM, Blocks.SCULK, Blocks.SCULK_VEIN, Blocks.SCULK_CATALYST, Blocks.SCULK_SENSOR,
             Blocks.SCULK_SHRIEKER, Blocks.POWDER_SNOW, Blocks.GILDED_BLACKSTONE,
-            Blocks.NETHER_GOLD_ORE, Blocks.NETHER_QUARTZ_ORE
+            Blocks.NETHER_GOLD_ORE, Blocks.NETHER_QUARTZ_ORE,
+            Blocks.SANDSTONE, Blocks.RED_SANDSTONE
     );
 }

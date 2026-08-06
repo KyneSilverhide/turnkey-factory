@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlockEntity;
+import dev.aurelien.prefab.block.LamplighterBlockEntity;
 import dev.aurelien.prefab.block.LevelerBlockEntity;
 import dev.aurelien.prefab.block.TexturizerBlockEntity;
 import net.minecraft.client.Minecraft;
@@ -47,6 +48,7 @@ public class GhostRenderer {
     private static List<ControllerBlockEntity> cachedControllers = List.of();
     private static List<LevelerBlockEntity> cachedLevelers = List.of();
     private static List<TexturizerBlockEntity> cachedTexturizers = List.of();
+    private static List<LamplighterBlockEntity> cachedLamplighters = List.of();
 
     /**
      * Variante de {@link RenderType#lines()} qui ignore le tampon de profondeur (test « toujours vrai »,
@@ -114,7 +116,8 @@ public class GhostRenderer {
         List<ControllerBlockEntity> controllers = cachedControllers;
         List<LevelerBlockEntity> levelers = cachedLevelers;
         List<TexturizerBlockEntity> texturizers = cachedTexturizers;
-        if (controllers.isEmpty() && levelers.isEmpty() && texturizers.isEmpty()) {
+        List<LamplighterBlockEntity> lamplighters = cachedLamplighters;
+        if (controllers.isEmpty() && levelers.isEmpty() && texturizers.isEmpty() && lamplighters.isEmpty()) {
             return;
         }
 
@@ -146,15 +149,11 @@ public class GhostRenderer {
 
         for (LevelerBlockEntity be : levelers) {
             if (be.isRemoved()) continue; // le cache n'est rafraîchi que toutes les RESCAN_INTERVAL frames
-            // Grille PLATE à la hauteur cible (pas un volume) : une case fine par colonne de l'empreinte —
-            // au-dessus de cette grille = retiré, en dessous = remblayé.
-            int y = be.targetY();
-            for (int x = be.footprintMinX(); x <= be.footprintMaxX(); x++) {
-                for (int z = be.footprintMinZ(); z <= be.footprintMaxZ(); z++) {
-                    AABB cell = new AABB(x, y, z, x + 1, y + 0.02, z + 1);
-                    LevelRenderer.renderLineBox(pose, vc, cell, 0.3f, 0.9f, 1.0f, 0.6f);
-                }
-            }
+            // Contour plat à la hauteur cible (pas une grille case par case : jusqu'à (2×64+1)² cellules
+            // à portée max, bien trop pour un rendu par bloc chaque frame) — montre la portée choisie
+            // tout de suite, comme le texturiseur/l'allumeur de réverbères.
+            BlockPos originAtTarget = new BlockPos(be.getBlockPos().getX(), be.targetY(), be.getBlockPos().getZ());
+            renderRangeBoundary(pose, vc, originAtTarget, be.range(), 0.3f, 0.9f, 1.0f, 0.6f);
             // Une boîte rouge par bloc qui sera retiré (fantôme, plafonné côté serveur).
             for (BlockPos p : be.removalPreview()) {
                 AABB cell = new AABB(p).deflate(0.02);
@@ -164,11 +163,19 @@ public class GhostRenderer {
 
         for (TexturizerBlockEntity be : texturizers) {
             if (be.isRemoved()) continue; // le cache n'est rafraîchi que toutes les RESCAN_INTERVAL frames
+            // Contour plat au niveau du bloc : montre la portée MAXIMALE choisie tout de suite, sans
+            // attendre que le plan mette des cellules en file (utile même à l'arrêt, dès le réglage).
+            renderRangeBoundary(pose, vc, be.getBlockPos(), be.radius(), 0.7f, 0.3f, 1.0f, 0.8f);
             // Une boîte violette par cellule de sol à venir retexturer (fantôme, plafonné côté serveur).
             for (BlockPos p : be.preview()) {
                 AABB cell = new AABB(p).deflate(0.02);
                 LevelRenderer.renderLineBox(pose, vc, cell, 0.7f, 0.3f, 1.0f, 0.8f);
             }
+        }
+
+        for (LamplighterBlockEntity be : lamplighters) {
+            if (be.isRemoved()) continue; // le cache n'est rafraîchi que toutes les RESCAN_INTERVAL frames
+            renderRangeBoundary(pose, vc, be.getBlockPos(), be.range(), 1.0f, 0.85f, 0.3f, 0.8f);
         }
 
         // Flush du tampon "vc" AVANT de démarrer le second (RenderType différent) : getBuffer() sur un
@@ -206,6 +213,7 @@ public class GhostRenderer {
         List<ControllerBlockEntity> controllers = new ArrayList<>();
         List<LevelerBlockEntity> levelers = new ArrayList<>();
         List<TexturizerBlockEntity> texturizers = new ArrayList<>();
+        List<LamplighterBlockEntity> lamplighters = new ArrayList<>();
         int camChunkX = Mth.floor(cam.x) >> 4;
         int camChunkZ = Mth.floor(cam.z) >> 4;
         int chunkRadius = (RENDER_RADIUS >> 4) + 1;
@@ -231,6 +239,9 @@ public class GhostRenderer {
                     } else if (be instanceof TexturizerBlockEntity texturizer
                             && texturizer.getBlockPos().distToCenterSqr(cam.x, cam.y, cam.z) <= radiusSqr) {
                         texturizers.add(texturizer);
+                    } else if (be instanceof LamplighterBlockEntity lamplighter
+                            && lamplighter.getBlockPos().distToCenterSqr(cam.x, cam.y, cam.z) <= radiusSqr) {
+                        lamplighters.add(lamplighter);
                     }
                 }
             }
@@ -238,6 +249,25 @@ public class GhostRenderer {
         cachedControllers = controllers;
         cachedLevelers = levelers;
         cachedTexturizers = texturizers;
+        cachedLamplighters = lamplighters;
+    }
+
+    /**
+     * Contour plat (carré, pas cercle : un seul {@link LevelRenderer#renderLineBox} avec une hauteur
+     * dégénérée suffit à obtenir un rectangle-fil plutôt qu'un pavé plein — pas besoin d'émettre des
+     * sommets à la main) au niveau Y du bloc, bornant la portée choisie. C'est le carré englobant du
+     * disque réellement travaillé (distance euclidienne ≤ {@code range}), pas le disque exact : une
+     * approximation suffisante pour « jusqu'où ça va », et {@code +1} sur les bords max car les
+     * coordonnées de bloc nomment le coin MIN de la cellule.
+     */
+    private static void renderRangeBoundary(PoseStack pose, VertexConsumer vc, BlockPos origin, int range,
+                                             float r, float g, float b, float a) {
+        int y = origin.getY();
+        AABB box = new AABB(
+                origin.getX() - range, y, origin.getZ() - range,
+                origin.getX() + range + 1, y + 0.02, origin.getZ() + range + 1
+        );
+        LevelRenderer.renderLineBox(pose, vc, box, r, g, b, a);
     }
 
     /** Distance au carré entre {@code point} et le point le plus proche de {@code box} (0 si à l'intérieur). */

@@ -1,9 +1,12 @@
 package dev.aurelien.prefab;
 
 import dev.aurelien.prefab.network.BuildActionPayload;
+import dev.aurelien.prefab.network.LamplighterActionPayload;
 import dev.aurelien.prefab.network.LevelerActionPayload;
 import dev.aurelien.prefab.network.SetDimsPayload;
-import dev.aurelien.prefab.network.SetLevelerDimsPayload;
+import dev.aurelien.prefab.network.SetLamplighterRangePayload;
+import dev.aurelien.prefab.network.SetLamplighterSpacingPayload;
+import dev.aurelien.prefab.network.SetLevelerRangePayload;
 import dev.aurelien.prefab.network.SetLevelerTargetPayload;
 import dev.aurelien.prefab.network.SetOffsetPayload;
 import dev.aurelien.prefab.network.SetStylePayload;
@@ -41,11 +44,14 @@ public class PrefabMod {
         registrar.playToServer(SetOffsetPayload.TYPE, SetOffsetPayload.STREAM_CODEC, SetOffsetPayload::handle);
         registrar.playToServer(BuildActionPayload.TYPE, BuildActionPayload.STREAM_CODEC, BuildActionPayload::handle);
         registrar.playToServer(SetStylePayload.TYPE, SetStylePayload.STREAM_CODEC, SetStylePayload::handle);
-        registrar.playToServer(SetLevelerDimsPayload.TYPE, SetLevelerDimsPayload.STREAM_CODEC, SetLevelerDimsPayload::handle);
+        registrar.playToServer(SetLevelerRangePayload.TYPE, SetLevelerRangePayload.STREAM_CODEC, SetLevelerRangePayload::handle);
         registrar.playToServer(SetLevelerTargetPayload.TYPE, SetLevelerTargetPayload.STREAM_CODEC, SetLevelerTargetPayload::handle);
         registrar.playToServer(LevelerActionPayload.TYPE, LevelerActionPayload.STREAM_CODEC, LevelerActionPayload::handle);
         registrar.playToServer(SetTexturizerRadiusPayload.TYPE, SetTexturizerRadiusPayload.STREAM_CODEC, SetTexturizerRadiusPayload::handle);
         registrar.playToServer(SetTexturizerCoarseDirtPayload.TYPE, SetTexturizerCoarseDirtPayload.STREAM_CODEC, SetTexturizerCoarseDirtPayload::handle);
         registrar.playToServer(TexturizerActionPayload.TYPE, TexturizerActionPayload.STREAM_CODEC, TexturizerActionPayload::handle);
+        registrar.playToServer(SetLamplighterRangePayload.TYPE, SetLamplighterRangePayload.STREAM_CODEC, SetLamplighterRangePayload::handle);
+        registrar.playToServer(SetLamplighterSpacingPayload.TYPE, SetLamplighterSpacingPayload.STREAM_CODEC, SetLamplighterSpacingPayload::handle);
+        registrar.playToServer(LamplighterActionPayload.TYPE, LamplighterActionPayload.STREAM_CODEC, LamplighterActionPayload::handle);
     }
 }

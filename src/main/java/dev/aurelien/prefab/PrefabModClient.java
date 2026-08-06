@@ -1,6 +1,7 @@
 package dev.aurelien.prefab;
 
 import dev.aurelien.prefab.client.ControllerScreen;
+import dev.aurelien.prefab.client.LamplighterScreen;
 import dev.aurelien.prefab.client.LevelerScreen;
 import dev.aurelien.prefab.client.TexturizerScreen;
 import dev.aurelien.prefab.reg.ModMenus;
@@ -16,5 +17,6 @@ public class PrefabModClient {
         event.register(ModMenus.CONTROLLER.get(), ControllerScreen::new);
         event.register(ModMenus.LEVELER.get(), LevelerScreen::new);
         event.register(ModMenus.TEXTURIZER.get(), TexturizerScreen::new);
+        event.register(ModMenus.LAMPLIGHTER.get(), LamplighterScreen::new);
     }
 }

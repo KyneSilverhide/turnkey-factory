@@ -3,51 +3,47 @@ package dev.aurelien.prefab.client;
 import dev.aurelien.prefab.block.LevelerBlockEntity;
 import dev.aurelien.prefab.menu.LevelerMenu;
 import dev.aurelien.prefab.network.LevelerActionPayload;
-import dev.aurelien.prefab.network.SetLevelerDimsPayload;
+import dev.aurelien.prefab.network.SetLevelerRangePayload;
 import dev.aurelien.prefab.network.SetLevelerTargetPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.IntConsumer;
-import java.util.function.IntSupplier;
-
 public class LevelerScreen extends AbstractContainerScreen<LevelerMenu> {
-    private static final int COL2_DX = 160;
-
-    private static final int Y_HEADER = 6;
-    private static final int Y_ROW1 = 20, Y_ROW2 = 42, Y_ROW3 = 64;
-    private static final int Y_FILL_INFO = 90;
-    private static final int Y_SHOVEL_LABEL = 100;
-    private static final int Y_ACTION_ROW = 108;
-    private static final int Y_STATUS = 134;
+    // Disposition sur DEUX colonnes (plus large que haut → tient à l'écran même en GUI scale auto,
+    // cf. ControllerScreen ; l'ancienne version tout-empilé-verticalement à 278 de haut débordait
+    // de l'écran dès que la fenêtre était plus petite que le plancher garanti de 240 par Minecraft).
+    private static final int Y_RANGE = 8;
+    private static final int Y_TARGET = 30;
+    private static final int Y_FILL_DEPTH = 52;
+    private static final int Y_FILL_INFO = 74;
+    private static final int Y_TOOLS_LABEL = 40;
+    private static final int Y_ACTION_ROW = 98;
+    private static final int Y_STATUS = 122;
+    private static final int LINE_H = 10;
 
     private static final int LABEL_X = 12;
     private static final int MINUS_X = 72;
     private static final int VALUE_X = 98;
     private static final int PLUS_X = 120;
+    private static final int MAX_X = 146;
+    /** Position X des slots pelle/pioche, cohérente avec {@link LevelerMenu}. */
+    private static final int TOOLS_X = 180;
 
-    // Ligne Démarrer/Pelle côte à côte : moitié gauche = bouton, moitié droite = slot.
-    private static final int HALF_GAP = 8;
-    private static final int LEFT_X0 = LABEL_X;
+    private int range, targetY, fillDepth;
 
-    private int w, l;
-    private int ox, oz, targetY, fillDepth;
-
-    private final List<Button> configButtons = new ArrayList<>();
     private Button toggleButton;
 
     public LevelerScreen(LevelerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
-        this.imageWidth = 310;
-        this.imageHeight = 238;
+        this.imageWidth = 230;
+        this.imageHeight = 234;
     }
 
     private LevelerBlockEntity be() {
@@ -61,51 +57,62 @@ public class LevelerScreen extends AbstractContainerScreen<LevelerMenu> {
     @Override
     protected void init() {
         super.init();
-        configButtons.clear();
 
         LevelerBlockEntity be = be();
         if (be != null) {
-            w = be.width(); l = be.length();
-            ox = be.offsetX(); oz = be.offsetZ(); targetY = be.targetOffsetY(); fillDepth = be.fillDepth();
+            range = be.range();
+            targetY = be.targetOffsetY();
+            fillDepth = be.fillDepth();
         } else {
-            w = l = 7; ox = oz = targetY = 0; fillDepth = LevelerBlockEntity.DEFAULT_FILL_DEPTH;
+            range = LevelerBlockEntity.DEFAULT_RANGE;
+            targetY = 0;
+            fillDepth = LevelerBlockEntity.DEFAULT_FILL_DEPTH;
         }
 
-        row(MINUS_X, PLUS_X, Y_ROW1, () -> w, v -> w = v, LevelerBlockEntity.MIN_SIZE, LevelerBlockEntity.MAX_SIZE,
-                LevelerBlockEntity.SIZE_STEP, this::sendDims);
-        row(MINUS_X, PLUS_X, Y_ROW2, () -> l, v -> l = v, LevelerBlockEntity.MIN_SIZE, LevelerBlockEntity.MAX_SIZE,
-                LevelerBlockEntity.SIZE_STEP, this::sendDims);
-        row(MINUS_X + COL2_DX, PLUS_X + COL2_DX, Y_ROW1, () -> ox, v -> ox = v, -LevelerBlockEntity.OFFSET_MAX, LevelerBlockEntity.OFFSET_MAX, 1, this::sendTarget);
-        row(MINUS_X + COL2_DX, PLUS_X + COL2_DX, Y_ROW2, () -> oz, v -> oz = v, -LevelerBlockEntity.OFFSET_MAX, LevelerBlockEntity.OFFSET_MAX, 1, this::sendTarget);
-        row(MINUS_X, PLUS_X, Y_ROW3, () -> targetY, v -> targetY = v, -LevelerBlockEntity.TARGET_MAX, LevelerBlockEntity.TARGET_MAX, 1, this::sendTarget);
-        row(MINUS_X + COL2_DX, PLUS_X + COL2_DX, Y_ROW3, () -> fillDepth, v -> fillDepth = v, LevelerBlockEntity.MIN_FILL_DEPTH,
-                LevelerBlockEntity.MAX_FILL_DEPTH, 1, this::sendTarget);
+        addRenderableWidget(Button.builder(Component.literal("-"), b -> {
+            range = Mth.clamp(range - 1, LevelerBlockEntity.MIN_RANGE, LevelerBlockEntity.MAX_RANGE);
+            sendRange();
+        }).bounds(leftPos + MINUS_X, topPos + Y_RANGE, 20, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("+"), b -> {
+            range = Mth.clamp(range + 1, LevelerBlockEntity.MIN_RANGE, LevelerBlockEntity.MAX_RANGE);
+            sendRange();
+        }).bounds(leftPos + PLUS_X, topPos + Y_RANGE, 20, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.turnkey_factory.leveler.max"), b -> {
+            range = LevelerBlockEntity.MAX_RANGE;
+            sendRange();
+        }).bounds(leftPos + MAX_X, topPos + Y_RANGE, 32, 20).build());
 
-        int leftHalfWidth = imageWidth / 2 - HALF_GAP - LEFT_X0;
+        addRenderableWidget(Button.builder(Component.literal("-"), b -> {
+            targetY = Mth.clamp(targetY - 1, -LevelerBlockEntity.TARGET_MAX, LevelerBlockEntity.TARGET_MAX);
+            sendTarget();
+        }).bounds(leftPos + MINUS_X, topPos + Y_TARGET, 20, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("+"), b -> {
+            targetY = Mth.clamp(targetY + 1, -LevelerBlockEntity.TARGET_MAX, LevelerBlockEntity.TARGET_MAX);
+            sendTarget();
+        }).bounds(leftPos + PLUS_X, topPos + Y_TARGET, 20, 20).build());
+
+        addRenderableWidget(Button.builder(Component.literal("-"), b -> {
+            fillDepth = Mth.clamp(fillDepth - 1, LevelerBlockEntity.MIN_FILL_DEPTH, LevelerBlockEntity.MAX_FILL_DEPTH);
+            sendTarget();
+        }).bounds(leftPos + MINUS_X, topPos + Y_FILL_DEPTH, 20, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("+"), b -> {
+            fillDepth = Mth.clamp(fillDepth + 1, LevelerBlockEntity.MIN_FILL_DEPTH, LevelerBlockEntity.MAX_FILL_DEPTH);
+            sendTarget();
+        }).bounds(leftPos + PLUS_X, topPos + Y_FILL_DEPTH, 20, 20).build());
+
         toggleButton = addRenderableWidget(Button.builder(toggleLabel(), b -> {
             LevelerBlockEntity current = be();
             boolean next = current == null || !current.active();
             PacketDistributor.sendToServer(new LevelerActionPayload(menu.pos(), next));
-        }).bounds(leftPos + LEFT_X0, topPos + Y_ACTION_ROW, leftHalfWidth, 20).build());
+        }).bounds(leftPos + LABEL_X, topPos + Y_ACTION_ROW, 130, 20).build());
     }
 
-    private void row(int minusX, int plusX, int y, IntSupplier get, IntConsumer set, int min, int max, int step, Runnable onChange) {
-        configButtons.add(addRenderableWidget(Button.builder(Component.literal("-"), b -> {
-            set.accept(Mth.clamp(get.getAsInt() - step, min, max));
-            onChange.run();
-        }).bounds(leftPos + minusX, topPos + y, 20, 20).build()));
-        configButtons.add(addRenderableWidget(Button.builder(Component.literal("+"), b -> {
-            set.accept(Mth.clamp(get.getAsInt() + step, min, max));
-            onChange.run();
-        }).bounds(leftPos + plusX, topPos + y, 20, 20).build()));
-    }
-
-    private void sendDims() {
-        PacketDistributor.sendToServer(new SetLevelerDimsPayload(menu.pos(), w, l));
+    private void sendRange() {
+        PacketDistributor.sendToServer(new SetLevelerRangePayload(menu.pos(), range));
     }
 
     private void sendTarget() {
-        PacketDistributor.sendToServer(new SetLevelerTargetPayload(menu.pos(), ox, oz, targetY, fillDepth));
+        PacketDistributor.sendToServer(new SetLevelerTargetPayload(menu.pos(), targetY, fillDepth));
     }
 
     private Component toggleLabel() {
@@ -117,8 +124,6 @@ public class LevelerScreen extends AbstractContainerScreen<LevelerMenu> {
     @Override
     protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
         g.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0xD0101010);
-        // Case visible pour chaque emplacement (pelle/pioche + inventaire joueur) : sans ça, un slot vide
-        // est invisible et on ne sait pas où poser un objet, ni distinguer les slots machine de l'inventaire.
         for (Slot slot : menu.slots) {
             slotBg(g, leftPos + slot.x - 1, topPos + slot.y - 1, slot.index < 2);
         }
@@ -136,22 +141,13 @@ public class LevelerScreen extends AbstractContainerScreen<LevelerMenu> {
 
         int lx = leftPos + LABEL_X;
         int vx = leftPos + VALUE_X;
-        int lx2 = lx + COL2_DX;
-        int vx2 = vx + COL2_DX;
 
-        g.drawString(font, Component.translatable("gui.turnkey_factory.leveler.zone"), lx, topPos + Y_HEADER, 0xC0C0FF, false);
-        label(g, lx, vx, Y_ROW1, Component.translatable("gui.turnkey_factory.width"), w);
-        label(g, lx, vx, Y_ROW2, Component.translatable("gui.turnkey_factory.length"), l);
-        label(g, lx, vx, Y_ROW3, Component.translatable("gui.turnkey_factory.leveler.target_height"), targetY);
+        label(g, lx, vx, Y_RANGE, Component.translatable("gui.turnkey_factory.leveler.range"), range);
+        label(g, lx, vx, Y_TARGET, Component.translatable("gui.turnkey_factory.leveler.target_height"), targetY);
+        label(g, lx, vx, Y_FILL_DEPTH, Component.translatable("gui.turnkey_factory.leveler.fill_depth"), fillDepth);
 
-        g.drawString(font, Component.translatable("gui.turnkey_factory.leveler.offset"), lx2, topPos + Y_HEADER, 0xC0C0FF, false);
-        label(g, lx2, vx2, Y_ROW1, Component.translatable("gui.turnkey_factory.axis_x"), ox);
-        label(g, lx2, vx2, Y_ROW2, Component.translatable("gui.turnkey_factory.axis_z"), oz);
-        label(g, lx2, vx2, Y_ROW3, Component.translatable("gui.turnkey_factory.leveler.fill_depth"), fillDepth);
-
-        int rightHalfCenter = leftPos + imageWidth / 2 + HALF_GAP + (imageWidth / 2 - HALF_GAP - LABEL_X) / 2;
         Component toolsLabel = Component.translatable("gui.turnkey_factory.leveler.tools");
-        g.drawString(font, toolsLabel, rightHalfCenter - font.width(toolsLabel) / 2, topPos + Y_SHOVEL_LABEL, 0xC0C0FF, false);
+        g.drawString(font, toolsLabel, leftPos + TOOLS_X - font.width(toolsLabel) / 2 + 9, topPos + Y_TOOLS_LABEL, 0xC0C0FF, false);
 
         LevelerBlockEntity be = be();
 
@@ -160,7 +156,9 @@ public class LevelerScreen extends AbstractContainerScreen<LevelerMenu> {
             Component fillInfo = missing > 0
                     ? Component.translatable("gui.turnkey_factory.leveler.fill_info.missing", be.fillNeeded(), be.fillSupplied(), missing)
                     : Component.translatable("gui.turnkey_factory.leveler.fill_info.covered", be.fillNeeded());
-            g.drawString(font, fillInfo, lx, topPos + Y_FILL_INFO, missing > 0 ? 0xFFC040 : 0x80FF80, false);
+            // Largeur limitée à la colonne gauche : cette ligne partage sa bande verticale avec les
+            // slots pelle/pioche à droite (TOOLS_X), il ne faut pas dessiner par-dessus.
+            drawWrapped(g, fillInfo, lx, topPos + Y_FILL_INFO, TOOLS_X - LABEL_X - 8, missing > 0 ? 0xFFC040 : 0x80FF80);
         }
         Component status;
         int statusColor;
@@ -199,7 +197,8 @@ public class LevelerScreen extends AbstractContainerScreen<LevelerMenu> {
                 }
             }
         }
-        g.drawString(font, status, lx, topPos + Y_STATUS, statusColor, false);
+        int maxTextWidth = imageWidth - LABEL_X - 8;
+        drawWrapped(g, status, lx, topPos + Y_STATUS, maxTextWidth, statusColor);
 
         if (toggleButton != null) {
             toggleButton.setMessage(toggleLabel());
@@ -212,6 +211,14 @@ public class LevelerScreen extends AbstractContainerScreen<LevelerMenu> {
         int textY = topPos + rowY + 6;
         g.drawString(font, name, labelX, textY, 0xFFFFFF, false);
         g.drawString(font, String.valueOf(v), valueX, textY, 0xFFE070, false);
+    }
+
+    private void drawWrapped(GuiGraphics g, Component text, int x, int y, int maxWidth, int color) {
+        int lineY = y;
+        for (FormattedCharSequence line : font.split(text, maxWidth)) {
+            g.drawString(font, line, x, lineY, color, false);
+            lineY += LINE_H;
+        }
     }
 
     @Override

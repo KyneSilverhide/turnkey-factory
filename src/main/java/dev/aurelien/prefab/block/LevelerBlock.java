@@ -2,12 +2,9 @@ package dev.aurelien.prefab.block;
 
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -20,9 +17,10 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Niveleuse : bloc autonome qui aplanit le terrain à l'aide d'une pelle placée dans son interface
- * (durabilité consommée par bloc retiré/posé). Comme le bloc de contrôle, la zone travaillée se
- * déploie DEVANT le bloc (sens de pose du joueur), jamais dessous/sur lui : ça évite qu'elle finisse
- * par se recouvrir ou s'enterrer elle-même quand la hauteur cible change.
+ * (durabilité consommée par bloc retiré/posé). La zone travaillée est un carré centré sur le bloc
+ * lui-même (portée réglable, même convention que le texturiseur/l'allumeur de réverbères) ; sa
+ * propre colonne est toujours exclue du plan (cf. {@link LevelerBlockEntity#computePlan}), pour ne
+ * jamais se recouvrir ni s'enterrer elle-même quand la hauteur cible change.
  */
 public class LevelerBlock extends Block implements EntityBlock {
     public static final MapCodec<LevelerBlock> CODEC = simpleCodec(LevelerBlock::new);
@@ -39,15 +37,6 @@ public class LevelerBlock extends Block implements EntityBlock {
     @Override
     public @Nullable BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new LevelerBlockEntity(pos, state);
-    }
-
-    @Override
-    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
-        super.setPlacedBy(level, pos, state, placer, stack);
-        if (!level.isClientSide && placer != null && level.getBlockEntity(pos) instanceof LevelerBlockEntity be) {
-            // la zone démarre devant le bloc, dans la direction où regarde le joueur au moment de la pose
-            be.setFacing(Direction.fromYRot(placer.getYRot()));
-        }
     }
 
     @Override

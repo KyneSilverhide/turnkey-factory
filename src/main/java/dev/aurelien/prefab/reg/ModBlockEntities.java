@@ -2,6 +2,7 @@ package dev.aurelien.prefab.reg;
 
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlockEntity;
+import dev.aurelien.prefab.block.LamplighterBlockEntity;
 import dev.aurelien.prefab.block.LevelerBlockEntity;
 import dev.aurelien.prefab.block.TexturizerBlockEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -25,4 +26,8 @@ public class ModBlockEntities {
     public static final Supplier<BlockEntityType<TexturizerBlockEntity>> TEXTURIZER =
             BLOCK_ENTITIES.register("texturizer", () ->
                     BlockEntityType.Builder.of(TexturizerBlockEntity::new, ModBlocks.TEXTURIZER.get()).build(null));
+
+    public static final Supplier<BlockEntityType<LamplighterBlockEntity>> LAMPLIGHTER =
+            BLOCK_ENTITIES.register("lamplighter", () ->
+                    BlockEntityType.Builder.of(LamplighterBlockEntity::new, ModBlocks.LAMPLIGHTER.get()).build(null));
 }

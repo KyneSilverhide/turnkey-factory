@@ -6,7 +6,6 @@ import dev.aurelien.prefab.build.ToolDurability;
 import dev.aurelien.prefab.menu.LevelerMenu;
 import dev.aurelien.prefab.reg.ModBlockEntities;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
@@ -35,19 +34,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Aplanit automatiquement une zone rectangulaire de terrain à une hauteur cible : retire ce qui
- * dépasse, comble les creux. Alimentée par une pelle (sol meuble : terre, sable, gravier…) et une
- * pioche (roche, minerais), chacune dans son propre slot, durabilité consommée par bloc traité ;
- * puise le matériau de remblai dans les inventaires liés (flood-fill, comme le bloc de contrôle).
- * Ne touche jamais un bloc qui n'est pas du terrain naturel ({@link NaturalTerrain#isNaturalGround})
- * ni un arbre (troncs et feuilles) : les constructions du joueur et la végétation ligneuse sont
- * protégées.
+ * Aplanit automatiquement une zone carrée de terrain à une hauteur cible : retire ce qui dépasse,
+ * comble les creux. La zone est centrée sur le bloc lui-même, portée réglable jusqu'à
+ * {@link #MAX_RANGE} (même convention que le texturiseur/l'allumeur de réverbères) ; sa propre
+ * colonne est toujours exclue du plan (cf. {@link #computePlan}), pour ne jamais se recouvrir ni
+ * s'enterrer elle-même quand la hauteur cible change. Alimentée par une pelle (sol meuble : terre,
+ * sable, gravier…) et une pioche (roche, minerais), chacune dans son propre slot, durabilité
+ * consommée tous les {@link #TOOL_DAMAGE_INTERVAL} blocs traités ; puise le matériau de remblai
+ * dans les inventaires liés (flood-fill, comme le bloc de contrôle). Ne touche jamais un bloc qui
+ * n'est pas du terrain naturel ({@link NaturalTerrain#isNaturalGround}) ni un arbre (troncs et
+ * feuilles) : les constructions du joueur et la végétation ligneuse sont protégées.
  */
 public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Container {
-    public static final int MIN_SIZE = 3;
-    public static final int MAX_SIZE = 31;
-    public static final int SIZE_STEP = 2;   // largeur/longueur : impaires uniquement (centrage exact)
-    public static final int OFFSET_MAX = 15;
+    public static final int MIN_RANGE = 4;
+    public static final int MAX_RANGE = 64;
+    public static final int DEFAULT_RANGE = 8;
     public static final int TARGET_MAX = 20;
     public static final int MIN_FILL_DEPTH = 1;
     public static final int MAX_FILL_DEPTH = 24;
@@ -57,6 +58,9 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
     private static final int SCAN_UP = 24;          // hauteur explorée au-dessus de la cible (retrait)
     private static final int LEVEL_PER_TICK = 4;    // opérations (retrait/remblai) par tick
     private static final int MAX_PREVIEW = 128;     // cellules de retrait renvoyées au client (fantôme)
+    // 1 point de durabilité tous les N opérations (pas une par opération) : voir la constante jumelle
+    // dans TexturizerBlockEntity pour le calcul détaillé — même problème, même remède.
+    private static final int TOOL_DAMAGE_INTERVAL = 32;
 
     public static final int SLOT_SHOVEL = 0;
     public static final int SLOT_PICKAXE = 1;
@@ -69,13 +73,13 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
     public static final int STATUS_NO_LINK = 5;
     public static final int STATUS_NO_PICKAXE = 6;
 
-    private int width = 7, length = 7;
-    private int offX = 0, offZ = 0;
+    private int range = DEFAULT_RANGE;
     private int targetOffsetY = 0;
     private int fillDepth = DEFAULT_FILL_DEPTH;
     private int scanCooldown = 0;
+    private int shovelCharge = 0;
+    private int pickaxeCharge = 0;
     private boolean active = false;
-    private Direction facing = Direction.NORTH;
     /** Vrai dès qu'un plan a été calculé au moins une fois (pose ou chargement) : évite un aperçu vide au premier tick. */
     private boolean planComputed = false;
 
@@ -101,10 +105,7 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
 
     // ----- Configuration -----
 
-    public int width() { return width; }
-    public int length() { return length; }
-    public int offsetX() { return offX; }
-    public int offsetZ() { return offZ; }
+    public int range() { return range; }
     public int targetOffsetY() { return targetOffsetY; }
     public int status() { return status; }
     public int queueSize() { return queueSizeClient; }
@@ -134,61 +135,30 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
         return getBlockPos().getY() + targetOffsetY;
     }
 
-    public Direction facing() { return facing; }
-
-    public void setFacing(Direction f) {
-        this.facing = f;
-        onConfigChanged();
-    }
-
     /**
-     * Bornes de l'empreinte (en coordonnées monde), pour le calcul du plan et le fantôme (grille plate).
-     * La zone démarre juste DEVANT le bloc (dans le sens {@link #facing}), jamais sous/sur lui : comme
-     * le bloc de contrôle, la niveleuse reste hors de sa propre zone de travail — sinon changer la
-     * hauteur cible finit par la recouvrir ou l'enterrer elle-même.
+     * Bornes de l'empreinte (en coordonnées monde), carré centré sur le bloc lui-même — même
+     * convention que le texturiseur/l'allumeur de réverbères (portée réglable, {@link #MAX_RANGE}).
      */
-    private BlockPos[] footprintMinMaxXZ() {
-        Direction lateral = facing.getClockWise();
-        BlockPos s = getBlockPos()
-                .relative(facing, 1)                              // juste devant le bloc
-                .relative(lateral.getOpposite(), (width - 1) / 2)  // centré latéralement
-                .offset(offX, 0, offZ);                            // décalage joueur
-        BlockPos e = s.relative(facing, length - 1).relative(lateral, width - 1);
-        return new BlockPos[]{
-                new BlockPos(Math.min(s.getX(), e.getX()), 0, Math.min(s.getZ(), e.getZ())),
-                new BlockPos(Math.max(s.getX(), e.getX()), 0, Math.max(s.getZ(), e.getZ()))
-        };
-    }
-
-    public int footprintMinX() { return footprintMinMaxXZ()[0].getX(); }
-    public int footprintMaxX() { return footprintMinMaxXZ()[1].getX(); }
-    public int footprintMinZ() { return footprintMinMaxXZ()[0].getZ(); }
-    public int footprintMaxZ() { return footprintMinMaxXZ()[1].getZ(); }
+    public int footprintMinX() { return getBlockPos().getX() - range; }
+    public int footprintMaxX() { return getBlockPos().getX() + range; }
+    public int footprintMinZ() { return getBlockPos().getZ() - range; }
+    public int footprintMaxZ() { return getBlockPos().getZ() + range; }
 
     public int fillDepth() { return fillDepth; }
 
-    public void setDims(int w, int l) {
-        this.width = clampSize(w);
-        this.length = clampSize(l);
+    public void setRange(int r) {
+        this.range = clampRange(r);
         onConfigChanged();
     }
 
-    public void setTarget(int ox, int oz, int oy, int depth) {
-        this.offX = clampOffset(ox);
-        this.offZ = clampOffset(oz);
+    public void setTarget(int oy, int depth) {
         this.targetOffsetY = clampTarget(oy);
         this.fillDepth = clampFillDepth(depth);
         onConfigChanged();
     }
 
-    public static int clampSize(int v) {
-        int c = Math.max(MIN_SIZE, Math.min(MAX_SIZE, v));
-        if (c % 2 == 0) c--;
-        return c;
-    }
-
-    public static int clampOffset(int v) {
-        return Math.max(-OFFSET_MAX, Math.min(OFFSET_MAX, v));
+    public static int clampRange(int v) {
+        return Math.max(MIN_RANGE, Math.min(MAX_RANGE, v));
     }
 
     public static int clampFillDepth(int v) {
@@ -250,6 +220,13 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
         List<BlockPos> holeCells = new ArrayList<>();
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
+                // La zone est maintenant centrée SUR le bloc (comme le texturiseur/l'allumeur de
+                // réverbères), donc sa propre colonne en fait géométriquement partie — on l'exclut
+                // entièrement (retrait ET remblai), pas juste sa propre cellule : sans ça, une cible
+                // en dessous de sa position creuserait un puits sous la machine elle-même (cf. l'ancien
+                // design "toujours devant le bloc, jamais dessous", qui existait précisément pour ça).
+                if (x == origin.getX() && z == origin.getZ()) continue;
+
                 // Ne descend que dans la masse solide continue au-dessus de la cible : dès qu'on retombe
                 // dans une couche d'air (ou de fluide) après avoir déjà traversé du solide, on s'arrête —
                 // pas la peine de creuser plus bas dans une éventuelle grotte/poche déconnectée. Troncs ET
@@ -258,7 +235,6 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
                 boolean foundSolid = false;
                 for (int y = target + SCAN_UP; y >= target; y--) {
                     p.set(x, y, z);
-                    if (p.equals(origin)) continue; // ne jamais se retirer soi-même
                     if (!server.isLoaded(p)) continue;
                     BlockState state = server.getBlockState(p);
                     if (state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS)) continue;
@@ -369,8 +345,13 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
                     if (op.fill()) {
                         // La cellule a pu être occupée entre-temps (le joueur y a construit, ou du gravier
                         // d'une colonne voisine y est tombé) : on ne l'écrase jamais, on abandonne juste cet
-                        // ordre de remblai sans consommer de matériau.
-                        if (!server.getBlockState(op.pos()).isAir()) {
+                        // ordre de remblai sans consommer de matériau. Exception : une déco sans collision
+                        // (herbe, buisson mort…) déjà présente au moment du plan — cf. computePlan, qui
+                        // compte volontairement ces cellules comme des trous à combler — DOIT être écrasée
+                        // ici, sinon elle reste coincée sous rien pour toujours (le remblai est abandonné
+                        // silencieusement dès qu'il touche la moindre brindille).
+                        BlockState occupying = server.getBlockState(op.pos());
+                        if (!occupying.isAir() && !occupying.canBeReplaced()) {
                             queue.poll();
                             done++;
                             continue;
@@ -431,7 +412,18 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
                             }
                         }
                     }
-                    boolean broken = damageTool(server, usedPickaxe ? items.get(SLOT_PICKAXE) : shovel);
+                    boolean broken = false;
+                    if (usedPickaxe) {
+                        if (++pickaxeCharge >= TOOL_DAMAGE_INTERVAL) {
+                            pickaxeCharge = 0;
+                            broken = damageTool(server, items.get(SLOT_PICKAXE));
+                        }
+                    } else {
+                        if (++shovelCharge >= TOOL_DAMAGE_INTERVAL) {
+                            shovelCharge = 0;
+                            broken = damageTool(server, shovel);
+                        }
+                    }
                     queue.poll();
                     removalPreview.remove(op.pos());
                     done++;
@@ -560,14 +552,10 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
-        tag.putInt("w", width);
-        tag.putInt("l", length);
-        tag.putInt("ox", offX);
-        tag.putInt("oz", offZ);
+        tag.putInt("range", range);
         tag.putInt("targetY", targetOffsetY);
         tag.putInt("fillDepth", fillDepth);
         tag.putBoolean("active", active);
-        tag.putInt("facing", facing.get2DDataValue());
         tag.putLongArray("linked", linked.stream().mapToLong(BlockPos::asLong).toArray());
         ContainerHelper.saveAllItems(tag, items, registries);
     }
@@ -575,14 +563,17 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
-        if (tag.contains("w")) width = clampSize(tag.getInt("w"));
-        if (tag.contains("l")) length = clampSize(tag.getInt("l"));
-        if (tag.contains("ox")) offX = tag.getInt("ox");
-        if (tag.contains("oz")) offZ = tag.getInt("oz");
+        // Sauvegarde d'avant la portée centrée (zone rectangulaire devant le bloc, largeur/longueur
+        // + décalage) : pas de tag "range" du tout. Redémarrer tel quel appliquerait la NOUVELLE
+        // géométrie (carré centré, portée par défaut) à une machine que le joueur avait laissée active
+        // sur l'ancienne zone — elle se remettrait à aplanir un terrain jamais choisi pour ça, sans
+        // qu'il ait rien touché. On force l'arrêt une fois ; le joueur valide la nouvelle zone lui-même.
+        boolean legacySave = !tag.contains("range");
+        if (tag.contains("range")) range = clampRange(tag.getInt("range"));
         if (tag.contains("targetY")) targetOffsetY = tag.getInt("targetY");
         if (tag.contains("fillDepth")) fillDepth = clampFillDepth(tag.getInt("fillDepth"));
         if (tag.contains("active")) active = tag.getBoolean("active");
-        if (tag.contains("facing")) facing = Direction.from2DDataValue(tag.getInt("facing"));
+        if (legacySave) active = false;
 
         linked.clear();
         for (long packed : tag.getLongArray("linked")) {

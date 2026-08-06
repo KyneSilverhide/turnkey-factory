@@ -29,6 +29,7 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
     private static final int MINUS_X = 72;
     private static final int VALUE_X = 98;
     private static final int PLUS_X = 120;
+    private static final int MAX_X = 146;
     /** Position X du slot pioche / libellé "Outils", cohérente avec {@link TexturizerMenu}. */
     static final int PICKAXE_X = 180;
 
@@ -73,6 +74,10 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
             radius = Mth.clamp(radius + 1, TexturizerBlockEntity.MIN_RADIUS, TexturizerBlockEntity.MAX_RADIUS);
             sendRadius();
         }).bounds(leftPos + PLUS_X, topPos + Y_RADIUS, 20, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.turnkey_factory.texturizer.max"), b -> {
+            radius = TexturizerBlockEntity.MAX_RADIUS;
+            sendRadius();
+        }).bounds(leftPos + MAX_X, topPos + Y_RADIUS, 32, 20).build());
 
         coarseDirtButton = addRenderableWidget(Button.builder(coarseDirtLabel(), b -> {
             coarseDirt = !coarseDirt;

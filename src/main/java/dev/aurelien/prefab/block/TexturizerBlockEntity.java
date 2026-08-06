@@ -58,6 +58,10 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     private static final int SCAN_INTERVAL = 20;     // ticks entre deux scans d'inventaires liés (1 s)
     private static final int WORK_PER_TICK = 4;      // cellules traitées par tick
     private static final int MAX_PREVIEW = 128;      // cellules renvoyées au client (fantôme)
+    // 1 point de durabilité tous les N cellules (pas une par cellule) : à WORK_PER_TICK=4, une pioche
+    // en fer (250 pts) durait ~3s sans ce ralenti — bien trop vite pour une machine censée tourner en
+    // tâche de fond. Avec ce ralenti, une pioche en fer couvre ~8000 cellules (un disque de rayon ~50).
+    private static final int TOOL_DAMAGE_INTERVAL = 32;
 
     /** Motif fixe, parts égales (25% chacun) : cobblestone / gravier / andésite / pierre. */
     private static final BlockState[] MOSAIC = {
@@ -83,6 +87,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     private int radius = DEFAULT_RADIUS;
     private boolean coarseDirtPatches = false;
     private int scanCooldown = 0;
+    private int toolCharge = 0;
     private boolean active = false;
     /** Vrai dès qu'un plan a été calculé au moins une fois (pose ou chargement) : évite un aperçu vide au premier tick. */
     private boolean planComputed = false;
@@ -314,7 +319,11 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
                     }
                     placePattern(server, pos, freePatch);
 
-                    boolean broken = damageTool(server, pickaxe);
+                    boolean broken = false;
+                    if (++toolCharge >= TOOL_DAMAGE_INTERVAL) {
+                        toolCharge = 0;
+                        broken = damageTool(server, pickaxe);
+                    }
                     queue.poll();
                     preview.remove(pos);
                     done++;
