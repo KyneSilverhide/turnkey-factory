@@ -15,18 +15,24 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BushBlock;
+import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
@@ -38,16 +44,21 @@ import java.util.PriorityQueue;
 import java.util.Set;
 
 /**
- * Retexture la surface naturelle autour du bloc en un motif FIXE : cobblestone/gravier/andésite/pierre
- * à parts égales (25% chacun, {@link #MOSAIC}). Ne consomme que de la cobblestone dans les inventaires
- * liés (1 par cellule, quel que soit le bloc tiré du motif) — c'est elle qui « paie » le mélange entier.
- * Les blocs de sol retirés ne sont ni récupérés ni redéposés : ils sont directement remplacés (aucun
- * appel à {@code Block.getDrops}). Option « parcelles d'herbe » : une part des cellules devient une
- * parcelle de terre grossière + pousse au lieu du motif — gratuite, sans coût de cobblestone.
+ * Retexture la surface naturelle autour du bloc en un motif FIXE, au choix parmi deux {@link Palette} :
+ * pierre (cobblestone/gravier/andésite/pierre, à la pioche) ou terre (terre/podzol/terre enracinée, à la
+ * pelle), toujours à parts égales. Ne consomme que le matériau de coût de la palette active dans les
+ * inventaires liés (1 par cellule, quel que soit le bloc tiré du motif) — c'est lui qui « paie » le
+ * mélange entier. Les blocs de sol retirés ne sont ni récupérés ni redéposés : ils sont directement
+ * remplacés (aucun appel à {@code Block.getDrops}). Option « parcelles d'herbe » (disponible dans les
+ * deux motifs, cf. {@link #setCoarseDirtPatches}) : une part des cellules devient une parcelle de terre
+ * grossière + pousse (toujours la paire, jamais l'une sans l'autre) au lieu du motif — même coût que
+ * n'importe quelle autre cellule, ce n'est qu'une variante d'apparence ; c'est le seul endroit où de la
+ * terre grossière apparaît.
  * Se propage en cercles concentriques depuis la colonne juste sous le bloc, en épousant les petites
  * variations de hauteur du terrain (mais jamais les falaises/grottes : cf. {@link #findSurfaceY}), et
- * s'arrête net sur tout ce qui n'est pas du sol naturel — ne comble donc jamais un trou. Consomme une
- * pioche (durabilité par bloc) et exige un inventaire lié pour démarrer, exactement comme la niveleuse.
+ * s'arrête net sur tout ce qui n'est pas du sol naturel — ne comble donc jamais un trou. Consomme l'outil
+ * exigé par la palette active (durabilité par bloc) et exige un inventaire lié pour démarrer, exactement
+ * comme la niveleuse.
  */
 public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, Container {
     public static final int MIN_RADIUS = 2;
@@ -63,21 +74,49 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     // tâche de fond. Avec ce ralenti, une pioche en fer couvre ~8000 cellules (un disque de rayon ~50).
     private static final int TOOL_DAMAGE_INTERVAL = 32;
 
-    /** Motif fixe, parts égales (25% chacun) : cobblestone / gravier / andésite / pierre. */
-    private static final BlockState[] MOSAIC = {
+    /** Motif « pierre », parts égales (25% chacun) : cobblestone / gravier / andésite / pierre. Payé en cobblestone. */
+    private static final BlockState[] STONE_MOSAIC = {
             Blocks.COBBLESTONE.defaultBlockState(),
             Blocks.GRAVEL.defaultBlockState(),
             Blocks.ANDESITE.defaultBlockState(),
             Blocks.STONE.defaultBlockState(),
     };
 
-    private static final float COARSE_DIRT_CHANCE = 0.05f; // part des cellules transformées en parcelle gratuite
-    private static final float PLANT_CHANCE = 0.6f;         // chance qu'une parcelle reçoive une pousse
+    /**
+     * Motif « terre », parts égales (33% chacun) : terre / podzol / terre enracinée. Payé en terre. La
+     * terre grossière n'apparaît JAMAIS dans ce mélange payant — elle n'existe que via l'option
+     * « parcelles gratuites » (terre grossière + pousse, jamais l'une sans l'autre), disponible dans les
+     * deux motifs.
+     */
+    private static final BlockState[] DIRT_MOSAIC = {
+            Blocks.DIRT.defaultBlockState(),
+            Blocks.PODZOL.defaultBlockState(),
+            Blocks.ROOTED_DIRT.defaultBlockState(),
+    };
+
+    /** Les deux motifs proposés par le texturiseur, chacun avec son matériau de coût et son outil dédiés. */
+    public enum Palette {
+        STONE(STONE_MOSAIC, Items.COBBLESTONE, ItemTags.PICKAXES),
+        DIRT(DIRT_MOSAIC, Items.DIRT, ItemTags.SHOVELS);
+
+        public final BlockState[] mosaic;
+        public final Item costItem;
+        public final TagKey<Item> toolTag;
+
+        Palette(BlockState[] mosaic, Item costItem, TagKey<Item> toolTag) {
+            this.mosaic = mosaic;
+            this.costItem = costItem;
+            this.toolTag = toolTag;
+        }
+    }
+
+    private static final float COARSE_DIRT_CHANCE = 0.05f; // part des cellules transformées en parcelle de terre grossière + pousse
+    // Une parcelle gratuite pose TOUJOURS une pousse (jamais de terre grossière nue) : cf. placePattern.
     private static final float FERN_CHANCE = 0.2f;          // parmi les pousses, part de fougère (sinon herbe)
 
-    public static final int SLOT_PICKAXE = 0;
+    public static final int SLOT_TOOL = 0;
 
-    public static final int STATUS_NO_PICKAXE = 0;
+    public static final int STATUS_NO_TOOL = 0;
     public static final int STATUS_WORKING = 1;
     public static final int STATUS_DONE = 2;
     public static final int STATUS_MISSING_MATERIAL = 3;
@@ -85,6 +124,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     public static final int STATUS_NO_LINK = 5;
 
     private int radius = DEFAULT_RADIUS;
+    private Palette palette = Palette.STONE;
     private boolean coarseDirtPatches = false;
     private int scanCooldown = 0;
     private int toolCharge = 0;
@@ -94,12 +134,21 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
 
     private final NonNullList<ItemStack> items = NonNullList.withSize(1, ItemStack.EMPTY);
     private final List<BlockPos> linked = new ArrayList<>();
+    /**
+     * Positions déjà converties par le motif terre (persisté, jamais synchronisé au client — cf.
+     * {@link #getUpdateTag}). Le motif terre inclut la terre nue elle-même parmi ses 4 variantes cibles,
+     * donc contrairement au motif pierre, on ne peut pas déduire « déjà fait » de l'identité du bloc en
+     * place (une case déjà en terre nue serait sinon prise pour un terrain naturel jamais traité, alors
+     * que c'est justement le cas le plus courant à texturer). On retient donc nous-mêmes les cases déjà
+     * traitées : une case n'est reconvertie qu'une fois, quel que soit le résultat du tirage.
+     */
+    private final Set<Long> dirtTexturedCells = new HashSet<>();
 
     private final ArrayDeque<BlockPos> queue = new ArrayDeque<>();
     /** Cellules à venir, plafonnées, synchronisées au client pour le fantôme. */
     private final List<BlockPos> preview = new ArrayList<>();
 
-    private int status = STATUS_NO_PICKAXE;
+    private int status = STATUS_NO_TOOL;
     private int queueSizeClient = 0;
     private int totalCells = 0;
     private int available = 0;
@@ -111,6 +160,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     // ----- Configuration -----
 
     public int radius() { return radius; }
+    public Palette palette() { return palette; }
     public boolean coarseDirtPatches() { return coarseDirtPatches; }
     public int status() { return status; }
     public int queueSize() { return queueSizeClient; }
@@ -135,6 +185,16 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
 
     public void setCoarseDirtPatches(boolean value) {
         this.coarseDirtPatches = value;
+        onConfigChanged();
+    }
+
+    /**
+     * Bascule le motif (pierre/terre). Le motif « terre » réutilise déjà la terre grossière comme l'une
+     * de ses 4 variantes payantes ; l'option « parcelles gratuites » (qui pose aussi de la terre
+     * grossière, gratuitement) n'a donc de sens qu'en motif pierre — cf. {@link #serverTick()}.
+     */
+    public void setPalette(Palette value) {
+        this.palette = value;
         onConfigChanged();
     }
 
@@ -188,14 +248,14 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
         List<BlockPos> ordered = new ArrayList<>();
         while (!frontier.isEmpty() && ordered.size() < maxCells) {
             Candidate c = frontier.poll();
-            Integer surfaceY = findSurfaceY(server, c.x(), c.z(), c.refY(), p, origin);
+            Integer surfaceY = findSurfaceY(server, c.x(), c.z(), c.refY(), p, origin, palette);
             if (surfaceY == null) continue; // pas de sol naturel accessible ici : on ne propage pas plus loin
 
             BlockPos pos = new BlockPos(c.x(), surfaceY, c.z());
             // On propage TOUJOURS à travers une cellule déjà texturée (sinon un disque déjà fini bloque
             // toute extension de rayon), mais on ne la remet pas au travail : seules les cellules encore
             // naturelles-et-pas-finies sont mises en file.
-            if (needsTexturing(server.getBlockState(pos))) {
+            if (needsTexturing(server.getBlockState(pos), pos, palette)) {
                 ordered.add(pos);
                 if (preview.size() < MAX_PREVIEW) preview.add(pos);
             }
@@ -214,7 +274,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
 
         queue.addAll(ordered);
         totalCells = ordered.size();
-        available = InventoryNetwork.countEligible(server, linked, item -> item == Items.COBBLESTONE);
+        available = InventoryNetwork.countEligible(server, linked, item -> item == palette.costItem);
     }
 
     /**
@@ -225,38 +285,69 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
      * un trou ou un bloc posé par le joueur. {@code self} (la position du texturiseur) compte comme
      * « ouvert » : sans ça, la colonne de départ — juste sous la machine — échouait toujours, puisque
      * la case au-dessus de son propre sol est occupée par la machine elle-même. Accepter aussi les
-     * cellules déjà texturées (cf. {@link #isFinishedTexture}) comme sol « marchable » est indispensable :
-     * sinon, une fois le disque intérieur fini, il forme un mur infranchissable qui empêche toute
-     * extension ultérieure du rayon d'atteindre les nouvelles cellules au-delà.
+     * cellules qui SONT un bloc du motif (cf. {@link #isPaletteBlock}) comme sol « marchable » est
+     * indispensable : sinon, une fois le disque intérieur fini, il forme un mur infranchissable qui
+     * empêche toute extension ultérieure du rayon d'atteindre les nouvelles cellules au-delà. Ce test
+     * reste volontairement basé sur l'état RÉEL du bloc (jamais sur {@link #dirtTexturedCells}) : sinon
+     * un trou creusé après coup dans une case déjà convertie serait pris pour du sol marchable et la
+     * propagation franchirait le trou au lieu de s'y arrêter.
      */
     @Nullable
-    private static Integer findSurfaceY(ServerLevel server, int x, int z, int refY, BlockPos.MutableBlockPos p, BlockPos self) {
+    private Integer findSurfaceY(ServerLevel server, int x, int z, int refY, BlockPos.MutableBlockPos p, BlockPos self, Palette palette) {
         for (int y = refY + STEP_WINDOW; y >= refY - STEP_WINDOW; y--) {
             p.set(x, y, z);
             if (!server.isLoaded(p)) continue;
             BlockState state = server.getBlockState(p);
-            if (!NaturalTerrain.isSurfaceGround(state) && !isFinishedTexture(state)) continue;
+            if (!NaturalTerrain.isSurfaceGround(state) && !isPaletteBlock(state, palette)) continue;
             p.set(x, y + 1, z);
             if (p.getX() == self.getX() && p.getY() == self.getY() && p.getZ() == self.getZ()) return y;
             if (!server.isLoaded(p)) continue;
             BlockState above = server.getBlockState(p);
-            if (above.isAir() || above.canBeReplaced()) return y;
+            if (isClearableAbove(above)) return y;
         }
         return null;
     }
 
-    /** Un des blocs que le texturiseur pose lui-même (motif ou parcelle) : déjà fini, jamais remis au travail. */
-    private static boolean isFinishedTexture(BlockState state) {
-        return state.is(Blocks.COARSE_DIRT)
-                || state.is(Blocks.COBBLESTONE)
-                || state.is(Blocks.GRAVEL)
-                || state.is(Blocks.ANDESITE)
-                || state.is(Blocks.STONE);
+    /** Vrai si {@code state} est, par son identité seule, un des blocs que ce motif pose (+ la parcelle terre grossière en motif pierre — en motif terre elle est déjà couverte par {@code isSurfaceGround}). */
+    private static boolean isPaletteBlock(BlockState state, Palette palette) {
+        if (palette == Palette.STONE && state.is(Blocks.COARSE_DIRT)) return true; // parcelle terre grossière + pousse
+        for (BlockState mosaicState : palette.mosaic) {
+            if (state.is(mosaicState.getBlock())) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Vrai si {@code state} peut être silencieusement effacé pour texturer la cellule juste en dessous :
+     * air/remplaçable (herbe, fougère...) OU petite flore (fleur, jeune pousse, champignon, culture...).
+     * {@link BushBlock} couvre la quasi-totalité de la petite flore vanilla/moddée sans jamais inclure un
+     * tronc ou des feuilles (classes distinctes) — donc pas de risque de faire tomber un arbre pour poser
+     * une dalle en dessous. Sans ce test, une case autrement parfaitement texturable (herbe surmontée
+     * d'une fleur, par ex.) n'était jamais ne serait-ce que mise en file : {@link #placePattern} sait
+     * déjà effacer ce qui se trouve au-dessus, encore fallait-il que la cellule soit retenue en premier lieu.
+     */
+    private static boolean isClearableAbove(BlockState state) {
+        return state.isAir() || state.canBeReplaced() || state.getBlock() instanceof BushBlock;
+    }
+
+    /**
+     * Une cellule déjà traitée par le motif ACTUELLEMENT sélectionné : jamais remise au travail. En motif
+     * pierre, l'identité du bloc suffit ({@link #isPaletteBlock}) : aucune de ses 4 variantes cibles n'est
+     * un terrain de départ courant. En motif terre, ce serait faux : la terre nue fait elle-même partie
+     * des 4 variantes cibles, donc une case de terre nue jamais traitée serait sinon confondue avec une
+     * case déjà convertie — on retient donc {@link #dirtTexturedCells} plutôt que de déduire « fini » du
+     * bloc en place.
+     */
+    private boolean isFinishedTexture(BlockState state, BlockPos pos, Palette palette) {
+        if (palette == Palette.DIRT) {
+            return dirtTexturedCells.contains(pos.asLong());
+        }
+        return isPaletteBlock(state, palette);
     }
 
     /** Cellule encore naturelle et pas déjà texturée par nous : c'est elle, et seulement elle, qu'on remet au travail. */
-    private static boolean needsTexturing(BlockState state) {
-        return NaturalTerrain.isSurfaceGround(state) && !isFinishedTexture(state);
+    private boolean needsTexturing(BlockState state, BlockPos pos, Palette palette) {
+        return NaturalTerrain.isSurfaceGround(state) && !isFinishedTexture(state, pos, palette);
     }
 
     // ----- Tick serveur -----
@@ -269,13 +360,15 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
             planComputed = true;
         }
 
-        ItemStack pickaxe = items.get(SLOT_PICKAXE);
+        ItemStack tool = items.get(SLOT_TOOL);
         boolean working = false;
 
         if (!active) {
             setStatus(linked.isEmpty() ? STATUS_NO_LINK : STATUS_INACTIVE);
-        } else if (pickaxe.isEmpty()) {
-            setStatus(STATUS_NO_PICKAXE);
+        } else if (tool.isEmpty() || !tool.is(palette.toolTag)) {
+            // Un outil du mauvais type (ex. une pioche restée en place après un passage en motif terre)
+            // compte comme absent : il faut le remplacer par celui qu'exige le motif actif.
+            setStatus(STATUS_NO_TOOL);
         } else {
             if (queue.isEmpty()) {
                 computePlan(server);
@@ -291,7 +384,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
 
                     // Revalidation à l'exécution : le plan a pu être calculé bien avant (grande zone). Si le
                     // terrain a changé ici depuis (miné, construit dessus, déjà texturé), on abandonne la cellule.
-                    if (!needsTexturing(current)) {
+                    if (!needsTexturing(current, pos, palette)) {
                         queue.poll();
                         preview.remove(pos);
                         done++;
@@ -299,43 +392,47 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
                     }
                     BlockPos abovePos = pos.above();
                     BlockState above = server.getBlockState(abovePos);
-                    if (!abovePos.equals(worldPosition) && !(above.isAir() || above.canBeReplaced())) {
+                    if (!abovePos.equals(worldPosition) && !isClearableAbove(above)) {
                         queue.poll();
                         preview.remove(pos);
                         done++;
                         continue;
                     }
 
-                    // Parcelle gratuite : tirée avant tout coût de matériau, ne consomme pas de cobblestone.
-                    boolean freePatch = coarseDirtPatches && server.getRandom().nextFloat() < COARSE_DIRT_CHANCE;
-                    if (!freePatch) {
-                        int cobble = InventoryNetwork.countEligible(server, linked, item -> item == Items.COBBLESTONE);
-                        if (cobble <= 0) {
-                            setStatus(STATUS_MISSING_MATERIAL);
-                            working = false;
-                            break;
-                        }
-                        InventoryNetwork.extract(server, linked, Items.COBBLESTONE, 1);
+                    // Variante « terre grossière + pousse » du motif payant, pas un bonus gratuit : coûte
+                    // le même matériau que n'importe quelle autre cellule. Disponible dans les deux motifs
+                    // (la terre grossière n'apparaît nulle part ailleurs).
+                    boolean coarseDirtPatch = coarseDirtPatches && server.getRandom().nextFloat() < COARSE_DIRT_CHANCE;
+                    int stock = InventoryNetwork.countEligible(server, linked, item -> item == palette.costItem);
+                    if (stock <= 0) {
+                        setStatus(STATUS_MISSING_MATERIAL);
+                        working = false;
+                        break;
                     }
-                    placePattern(server, pos, freePatch);
+                    InventoryNetwork.extract(server, linked, palette.costItem, 1);
+                    placePattern(server, pos, coarseDirtPatch);
 
                     boolean broken = false;
                     if (++toolCharge >= TOOL_DAMAGE_INTERVAL) {
                         toolCharge = 0;
-                        broken = damageTool(server, pickaxe);
+                        broken = damageTool(server, tool);
                     }
                     queue.poll();
                     preview.remove(pos);
                     done++;
                     if (broken) {
                         working = false;
-                        setStatus(STATUS_NO_PICKAXE);
+                        setStatus(STATUS_NO_TOOL);
                         break;
                     }
                 }
                 // Recalculé à chaque tick de travail : sans ça, le compte affiché resterait figé à sa
                 // valeur du début de run tant que le plan n'est pas recalculé (fin de file, config...).
-                available = InventoryNetwork.countEligible(server, linked, item -> item == Items.COBBLESTONE);
+                available = InventoryNetwork.countEligible(server, linked, item -> item == palette.costItem);
+                // Une seule fois par tick (pas par cellule placée) : suffisant pour que le chunk soit
+                // sauvegardé avec un dirtTexturedCells à jour, sans marquer le chunk sale des milliers
+                // de fois sur un grand disque.
+                if (working && palette == Palette.DIRT) setChanged();
                 if (working) {
                     setStatus(queue.isEmpty() ? STATUS_DONE : STATUS_WORKING);
                 }
@@ -359,21 +456,46 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
      * une fougère ou toute autre pousse se trouvait au-dessus, elle est effacée en silence avant le
      * remplacement plutôt que laissée se casser toute seule (mise à jour de voisinage automatique du
      * jeu) : cassée « naturellement », elle aurait une chance de lâcher des graines — exactement le
-     * genre de butin qu'on ne veut pas ici. Si {@code freePatch}, pose une parcelle de terre grossière
-     * (+ pousse éventuelle) à la place du motif payant — variation gratuite, ne consomme pas de cobblestone.
+     * genre de butin qu'on ne veut pas ici. Si {@code coarseDirtPatch}, pose une parcelle de terre
+     * grossière TOUJOURS accompagnée d'une pousse à la place du motif payant — jamais de terre grossière
+     * nue : c'est soit le motif normal, soit la paire complète. Coûte le même matériau qu'une cellule
+     * normale (cf. {@link #serverTick()}) : ce n'est qu'une variante d'apparence, pas un bonus gratuit.
+     * Pour la colonne d'origine (juste sous la machine), {@code above} est le bloc du texturiseur
+     * lui-même, pas une pousse — {@link #serverTick()} l'autorise explicitement à traverser ce garde-fou
+     * (cf. {@code abovePos.equals(worldPosition)}), donc il ne faut ni l'effacer ni y poser une pousse ici
+     * (seule exception où une parcelle reste sans pousse : la machine occupe déjà la case).
      */
-    private void placePattern(ServerLevel server, BlockPos pos, boolean freePatch) {
+    private void placePattern(ServerLevel server, BlockPos pos, boolean coarseDirtPatch) {
         BlockPos above = pos.above();
-        if (!server.getBlockState(above).isAir()) {
-            server.setBlock(above, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+        boolean aboveIsSelf = above.equals(worldPosition);
+        if (!aboveIsSelf) {
+            BlockState aboveState = server.getBlockState(above);
+            if (!aboveState.isAir()) {
+                server.setBlock(above, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+                // Moitié basse d'une plante à double hauteur (tournesol, lilas, herbe/fougère hautes...) :
+                // n'effacer que celle-ci laisserait la moitié haute flotter, sans jamais se casser toute
+                // seule (UPDATE_CLIENTS ne déclenche volontairement aucune mise à jour de voisinage, cf.
+                // plus haut — donc pas de recalcul automatique du support de la moitié haute non plus).
+                if (aboveState.getBlock() instanceof DoublePlantBlock
+                        && aboveState.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.LOWER) {
+                    server.setBlock(above.above(), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+                }
+            }
         }
 
-        BlockState placed = freePatch
+        BlockState placed = coarseDirtPatch
                 ? Blocks.COARSE_DIRT.defaultBlockState()
-                : MOSAIC[server.getRandom().nextInt(MOSAIC.length)];
+                : palette.mosaic[server.getRandom().nextInt(palette.mosaic.length)];
         server.setBlock(pos, placed, Block.UPDATE_ALL);
 
-        if (freePatch && server.getRandom().nextFloat() < PLANT_CHANCE) {
+        // Motif terre : seul moyen de savoir que cette case est « déjà faite » (cf. isFinishedTexture),
+        // puisque l'identité du bloc posé ne le distingue pas d'une case jamais traitée. Persistance
+        // (setChanged) déclenchée une seule fois par tick par l'appelant, pas ici cellule par cellule.
+        if (palette == Palette.DIRT) {
+            dirtTexturedCells.add(pos.asLong());
+        }
+
+        if (!aboveIsSelf && coarseDirtPatch) {
             BlockState plant = server.getRandom().nextFloat() < FERN_CHANCE
                     ? Blocks.FERN.defaultBlockState()
                     : Blocks.SHORT_GRASS.defaultBlockState();
@@ -397,7 +519,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
         }
     }
 
-    // ----- Container (slot pioche) -----
+    // ----- Container (slot outil) -----
 
     @Override
     public int getContainerSize() {
@@ -406,7 +528,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
 
     @Override
     public boolean isEmpty() {
-        return items.get(SLOT_PICKAXE).isEmpty();
+        return items.get(SLOT_TOOL).isEmpty();
     }
 
     @Override
@@ -460,6 +582,9 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         CompoundTag tag = new CompoundTag();
         saveAdditional(tag, registries);
+        // Purement une mémoire serveur (jusqu'à ~16k positions à rayon max) : inutile au client et bien
+        // trop lourd pour une sync réseau régulière — cf. la doc de dirtTexturedCells.
+        tag.remove("dirtTexturedCells");
         tag.putInt("status", status);
         tag.putInt("queueSize", queue.size());
         tag.putLongArray("preview", preview.stream().mapToLong(BlockPos::asLong).toArray());
@@ -474,9 +599,11 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.putInt("radius", radius);
+        tag.putString("palette", palette.name());
         tag.putBoolean("coarseDirtPatches", coarseDirtPatches);
         tag.putBoolean("active", active);
         tag.putLongArray("linked", linked.stream().mapToLong(BlockPos::asLong).toArray());
+        tag.putLongArray("dirtTexturedCells", dirtTexturedCells.stream().mapToLong(Long::longValue).toArray());
         ContainerHelper.saveAllItems(tag, items, registries);
     }
 
@@ -484,12 +611,23 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         if (tag.contains("radius")) radius = clampRadius(tag.getInt("radius"));
+        if (tag.contains("palette")) {
+            try {
+                palette = Palette.valueOf(tag.getString("palette"));
+            } catch (IllegalArgumentException ignored) {
+                palette = Palette.STONE;
+            }
+        }
         if (tag.contains("coarseDirtPatches")) coarseDirtPatches = tag.getBoolean("coarseDirtPatches");
         if (tag.contains("active")) active = tag.getBoolean("active");
 
         linked.clear();
         for (long packed : tag.getLongArray("linked")) {
             linked.add(BlockPos.of(packed));
+        }
+        dirtTexturedCells.clear();
+        for (long packed : tag.getLongArray("dirtTexturedCells")) {
+            dirtTexturedCells.add(packed);
         }
         ContainerHelper.loadAllItems(tag, items, registries);
 

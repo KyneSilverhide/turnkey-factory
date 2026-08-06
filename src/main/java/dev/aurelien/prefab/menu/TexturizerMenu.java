@@ -6,6 +6,7 @@ import dev.aurelien.prefab.reg.ModMenus;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -13,10 +14,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class TexturizerMenu extends AbstractContainerMenu {
-    private static final int PICKAXE_SLOT = 0;
+    private static final int TOOL_SLOT = 0;
     private static final int INV_START = 1;
     private static final int INV_END = INV_START + 27;   // 3x9 inventaire principal
     private static final int HOTBAR_END = INV_END + 9;    // + hotbar
@@ -24,12 +28,12 @@ public class TexturizerMenu extends AbstractContainerMenu {
     private final ContainerLevelAccess access;
     private final BlockPos pos;
 
-    /** Côté client : le slot pioche est un conteneur factice, synchronisé automatiquement par le protocole vanilla. */
+    /** Côté client : le slot outil est un conteneur factice, synchronisé automatiquement par le protocole vanilla. */
     public TexturizerMenu(int id, Inventory inv, RegistryFriendlyByteBuf buf) {
         this(id, inv, buf.readBlockPos(), new SimpleContainer(1));
     }
 
-    /** Côté serveur : le BlockEntity EST le conteneur (1 slot pioche persistant). */
+    /** Côté serveur : le BlockEntity EST le conteneur (1 slot outil persistant). */
     public TexturizerMenu(int id, Inventory inv, TexturizerBlockEntity be) {
         this(id, inv, be.getBlockPos(), be);
     }
@@ -39,10 +43,10 @@ public class TexturizerMenu extends AbstractContainerMenu {
         this.pos = pos;
         this.access = ContainerLevelAccess.create(inv.player.level(), pos);
 
-        addSlot(new Slot(container, PICKAXE_SLOT, 180, 106) {
+        addSlot(new Slot(container, TOOL_SLOT, 180, 106) {
             @Override
             public boolean mayPlace(ItemStack stack) {
-                return stack.is(ItemTags.PICKAXES);
+                return stack.is(requiredToolTag(inv.player.level()));
             }
         });
 
@@ -54,6 +58,11 @@ public class TexturizerMenu extends AbstractContainerMenu {
         for (int col = 0; col < 9; col++) {
             addSlot(new Slot(inv, col, 9 + col * 18, 220));
         }
+    }
+
+    /** Outil requis par le motif actuellement sélectionné (pioche/pelle) : pioche par défaut si le bloc entité n'est pas (encore) chargé. */
+    private TagKey<Item> requiredToolTag(Level level) {
+        return level.getBlockEntity(pos) instanceof TexturizerBlockEntity be ? be.palette().toolTag : ItemTags.PICKAXES;
     }
 
     public BlockPos pos() {
@@ -68,10 +77,10 @@ public class TexturizerMenu extends AbstractContainerMenu {
         ItemStack stackInSlot = slot.getItem();
         ItemStack result = stackInSlot.copy();
 
-        if (index == PICKAXE_SLOT) {
+        if (index == TOOL_SLOT) {
             if (!moveItemStackTo(stackInSlot, INV_START, HOTBAR_END, true)) return ItemStack.EMPTY;
-        } else if (stackInSlot.is(ItemTags.PICKAXES)) {
-            if (!moveItemStackTo(stackInSlot, PICKAXE_SLOT, PICKAXE_SLOT + 1, false)) return ItemStack.EMPTY;
+        } else if (stackInSlot.is(requiredToolTag(player.level()))) {
+            if (!moveItemStackTo(stackInSlot, TOOL_SLOT, TOOL_SLOT + 1, false)) return ItemStack.EMPTY;
         } else if (index < INV_END) {
             if (!moveItemStackTo(stackInSlot, INV_END, HOTBAR_END, false)) return ItemStack.EMPTY;
         } else if (index < HOTBAR_END) {

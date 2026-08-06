@@ -3,10 +3,12 @@ package dev.aurelien.prefab.client;
 import dev.aurelien.prefab.block.TexturizerBlockEntity;
 import dev.aurelien.prefab.menu.TexturizerMenu;
 import dev.aurelien.prefab.network.SetTexturizerCoarseDirtPayload;
+import dev.aurelien.prefab.network.SetTexturizerPalettePayload;
 import dev.aurelien.prefab.network.SetTexturizerRadiusPayload;
 import dev.aurelien.prefab.network.TexturizerActionPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
@@ -18,7 +20,8 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
     private static final int Y_HEADER = 6;
     private static final int Y_RADIUS = 20;
-    private static final int Y_COARSE = 46;
+    /** Motif et parcelles gratuites partagent une seule rangée (deux demi-boutons) pour ne pas agrandir la fenêtre. */
+    private static final int Y_TOGGLES = 46;
     private static final int Y_INFO = 72;
     private static final int Y_TOOLS_LABEL = 96;
     private static final int Y_ACTION_ROW = 106;
@@ -30,13 +33,16 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
     private static final int VALUE_X = 98;
     private static final int PLUS_X = 120;
     private static final int MAX_X = 146;
-    /** Position X du slot pioche / libellé "Outils", cohérente avec {@link TexturizerMenu}. */
-    static final int PICKAXE_X = 180;
+    private static final int TOGGLE_W = 76; // largeur d'un demi-bouton sur la rangée Y_TOGGLES
+    private static final int TOGGLE_GAP = 4;
+    /** Position X du slot outil / libellé de son nom, cohérente avec {@link TexturizerMenu}. */
+    static final int TOOL_X = 180;
 
     private int radius;
     private boolean coarseDirt;
 
     private Button toggleButton;
+    private Button paletteButton;
     private Button coarseDirtButton;
 
     public TexturizerScreen(TexturizerMenu menu, Inventory inv, Component title) {
@@ -79,11 +85,24 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
             sendRadius();
         }).bounds(leftPos + MAX_X, topPos + Y_RADIUS, 32, 20).build());
 
+        paletteButton = addRenderableWidget(Button.builder(paletteLabel(), b -> {
+            TexturizerBlockEntity.Palette current = currentPalette();
+            TexturizerBlockEntity.Palette next = current == TexturizerBlockEntity.Palette.STONE
+                    ? TexturizerBlockEntity.Palette.DIRT
+                    : TexturizerBlockEntity.Palette.STONE;
+            PacketDistributor.sendToServer(new SetTexturizerPalettePayload(menu.pos(), next.ordinal()));
+        }).bounds(leftPos + LABEL_X, topPos + Y_TOGGLES, TOGGLE_W, 20)
+                .tooltip(Tooltip.create(Component.translatable("gui.turnkey_factory.texturizer.palette.tooltip")))
+                .build());
+
+        // Disponible dans les deux motifs : la terre grossière n'apparaît nulle part ailleurs.
         coarseDirtButton = addRenderableWidget(Button.builder(coarseDirtLabel(), b -> {
             coarseDirt = !coarseDirt;
             PacketDistributor.sendToServer(new SetTexturizerCoarseDirtPayload(menu.pos(), coarseDirt));
             coarseDirtButton.setMessage(coarseDirtLabel());
-        }).bounds(leftPos + LABEL_X, topPos + Y_COARSE, 156, 20).build());
+        }).bounds(leftPos + LABEL_X + TOGGLE_W + TOGGLE_GAP, topPos + Y_TOGGLES, TOGGLE_W, 20)
+                .tooltip(Tooltip.create(Component.translatable("gui.turnkey_factory.texturizer.coarse_dirt.tooltip")))
+                .build());
 
         toggleButton = addRenderableWidget(Button.builder(toggleLabel(), b -> {
             TexturizerBlockEntity current = be();
@@ -100,6 +119,22 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
         TexturizerBlockEntity be = be();
         boolean active = be != null && be.active();
         return Component.translatable(active ? "gui.turnkey_factory.texturizer.stop" : "gui.turnkey_factory.texturizer.start");
+    }
+
+    /**
+     * Toujours lu depuis le bloc entité live (jamais mis en cache localement) : {@code mayPlace} du slot
+     * outil ({@link TexturizerMenu}) fait de même, donc le bouton ne peut jamais afficher un motif
+     * différent de celui qui gouverne réellement quel outil est accepté.
+     */
+    private TexturizerBlockEntity.Palette currentPalette() {
+        TexturizerBlockEntity be = be();
+        return be != null ? be.palette() : TexturizerBlockEntity.Palette.STONE;
+    }
+
+    private Component paletteLabel() {
+        return Component.translatable(currentPalette() == TexturizerBlockEntity.Palette.STONE
+                ? "gui.turnkey_factory.texturizer.palette.stone"
+                : "gui.turnkey_factory.texturizer.palette.dirt");
     }
 
     private Component coarseDirtLabel() {
@@ -138,14 +173,22 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
 
         TexturizerBlockEntity be = be();
         if (be != null) {
-            // Toujours affiché (même à 0 cellule restante) : sans ça, le compte de cobblestone disparaissait
+            if (paletteButton != null) {
+                paletteButton.setMessage(paletteLabel());
+            }
+            // Toujours affiché (même à 0 cellule restante) : sans ça, le compte de matériau disparaissait
             // dès que le texturiseur avait fini, alors que c'est justement là qu'on veut le consulter.
-            Component info = Component.translatable("gui.turnkey_factory.texturizer.info", be.totalCells(), be.available());
+            String infoKey = be.palette() == TexturizerBlockEntity.Palette.STONE
+                    ? "gui.turnkey_factory.texturizer.info.stone"
+                    : "gui.turnkey_factory.texturizer.info.dirt";
+            Component info = Component.translatable(infoKey, be.totalCells(), be.available());
             drawWrapped(g, info, lx, topPos + Y_INFO, maxTextWidth, be.available() > 0 ? 0x80FF80 : 0xFFC040);
         }
 
-        Component toolsLabel = Component.translatable("gui.turnkey_factory.texturizer.tools");
-        g.drawString(font, toolsLabel, leftPos + PICKAXE_X - font.width(toolsLabel) / 2 + 9, topPos + Y_TOOLS_LABEL, 0xC0C0FF, false);
+        Component toolsLabel = Component.translatable(currentPalette() == TexturizerBlockEntity.Palette.STONE
+                ? "gui.turnkey_factory.texturizer.tool.pickaxe"
+                : "gui.turnkey_factory.texturizer.tool.shovel");
+        g.drawString(font, toolsLabel, leftPos + TOOL_X - font.width(toolsLabel) / 2 + 9, topPos + Y_TOOLS_LABEL, 0xC0C0FF, false);
 
         Component status;
         int statusColor;
@@ -159,15 +202,21 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
                     statusColor = 0x80C0FF;
                 }
                 case TexturizerBlockEntity.STATUS_MISSING_MATERIAL -> {
-                    status = Component.translatable("gui.turnkey_factory.texturizer.status.missing_material");
+                    String key = be.palette() == TexturizerBlockEntity.Palette.STONE
+                            ? "gui.turnkey_factory.texturizer.status.missing_material.stone"
+                            : "gui.turnkey_factory.texturizer.status.missing_material.dirt";
+                    status = Component.translatable(key);
                     statusColor = 0xFFC040;
                 }
                 case TexturizerBlockEntity.STATUS_DONE -> {
                     status = Component.translatable("gui.turnkey_factory.texturizer.status.done");
                     statusColor = 0x80FF80;
                 }
-                case TexturizerBlockEntity.STATUS_NO_PICKAXE -> {
-                    status = Component.translatable("gui.turnkey_factory.texturizer.status.no_pickaxe");
+                case TexturizerBlockEntity.STATUS_NO_TOOL -> {
+                    String key = be.palette() == TexturizerBlockEntity.Palette.STONE
+                            ? "gui.turnkey_factory.texturizer.status.no_pickaxe"
+                            : "gui.turnkey_factory.texturizer.status.no_shovel";
+                    status = Component.translatable(key);
                     statusColor = 0xFF6060;
                 }
                 case TexturizerBlockEntity.STATUS_NO_LINK -> {
