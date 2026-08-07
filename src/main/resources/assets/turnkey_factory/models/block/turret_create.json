@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "turnkey_factory:block/turret_create_top",
+    "bottom": "turnkey_factory:block/turret_create_bottom",
+    "side": "turnkey_factory:block/turret_create_side"
+  }
+}

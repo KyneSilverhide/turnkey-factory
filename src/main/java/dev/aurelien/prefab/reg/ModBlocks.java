@@ -5,6 +5,7 @@ import dev.aurelien.prefab.block.ControllerBlock;
 import dev.aurelien.prefab.block.LamplighterBlock;
 import dev.aurelien.prefab.block.LevelerBlock;
 import dev.aurelien.prefab.block.TexturizerBlock;
+import dev.aurelien.prefab.block.TurretBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.neoforge.registries.DeferredBlock;
@@ -46,6 +47,15 @@ public class ModBlocks {
             BlockBehaviour.Properties.of()
                     .mapColor(MapColor.METAL)
                     .strength(3.0F)
+                    .requiresCorrectToolForDrops()
+    );
+
+    public static final DeferredBlock<TurretBlock> TURRET = BLOCKS.registerBlock(
+            "turret",
+            TurretBlock::new,
+            BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(3.5F)
                     .requiresCorrectToolForDrops()
     );
 }

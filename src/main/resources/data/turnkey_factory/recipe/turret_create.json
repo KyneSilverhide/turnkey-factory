@@ -1,0 +1,22 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "create" }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "ISI",
+    "GCG",
+    "III"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "S": { "item": "minecraft:spyglass" },
+    "C": { "item": "minecraft:comparator" },
+    "G": { "item": "create:cogwheel" }
+  },
+  "result": {
+    "id": "turnkey_factory:turret_create",
+    "count": 1
+  }
+}

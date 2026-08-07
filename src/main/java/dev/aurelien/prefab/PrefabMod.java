@@ -14,6 +14,10 @@ import dev.aurelien.prefab.network.SetTexturizerCoarseDirtPayload;
 import dev.aurelien.prefab.network.SetTexturizerPalettePayload;
 import dev.aurelien.prefab.network.SetTexturizerRadiusPayload;
 import dev.aurelien.prefab.network.TexturizerActionPayload;
+import dev.aurelien.prefab.network.SetTurretRangePayload;
+import dev.aurelien.prefab.network.SetTurretTargetsPayload;
+import dev.aurelien.prefab.compat.CreateCompat;
+import dev.aurelien.prefab.compat.create.CreateKineticContent;
 import dev.aurelien.prefab.reg.ModBlockEntities;
 import dev.aurelien.prefab.reg.ModBlocks;
 import dev.aurelien.prefab.reg.ModCreativeTabs;
@@ -36,6 +40,13 @@ public class PrefabMod {
         ModMenus.MENUS.register(modBus);
         ModCreativeTabs.TABS.register(modBus);
 
+        // Contenu Create-only : jamais touché si Create est absent (cf. javadoc de CreateKineticContent
+        // pour pourquoi cette garde suffit à éviter tout NoClassDefFoundError).
+        if (CreateCompat.isLoaded()) {
+            CreateKineticContent.register(modBus);
+            modBus.addListener(CreateKineticContent::onCommonSetup);
+        }
+
         modBus.addListener(this::registerPayloads);
     }
 
@@ -55,5 +66,7 @@ public class PrefabMod {
         registrar.playToServer(SetLamplighterRangePayload.TYPE, SetLamplighterRangePayload.STREAM_CODEC, SetLamplighterRangePayload::handle);
         registrar.playToServer(SetLamplighterSpacingPayload.TYPE, SetLamplighterSpacingPayload.STREAM_CODEC, SetLamplighterSpacingPayload::handle);
         registrar.playToServer(LamplighterActionPayload.TYPE, LamplighterActionPayload.STREAM_CODEC, LamplighterActionPayload::handle);
+        registrar.playToServer(SetTurretRangePayload.TYPE, SetTurretRangePayload.STREAM_CODEC, SetTurretRangePayload::handle);
+        registrar.playToServer(SetTurretTargetsPayload.TYPE, SetTurretTargetsPayload.STREAM_CODEC, SetTurretTargetsPayload::handle);
     }
 }

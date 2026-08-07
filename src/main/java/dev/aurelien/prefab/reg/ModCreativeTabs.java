@@ -1,6 +1,8 @@
 package dev.aurelien.prefab.reg;
 
 import dev.aurelien.prefab.PrefabMod;
+import dev.aurelien.prefab.compat.CreateCompat;
+import dev.aurelien.prefab.compat.create.CreateKineticContent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -22,6 +24,11 @@ public class ModCreativeTabs {
                 output.accept(ModItems.LEVELER.get());
                 output.accept(ModItems.TEXTURIZER.get());
                 output.accept(ModItems.LAMPLIGHTER.get());
+                output.accept(ModItems.TURRET.get());
+                // Create-only : n'apparaît que si Create est chargé, cf. CreateKineticContent.
+                if (CreateCompat.isLoaded()) {
+                    output.accept(CreateKineticContent.TURRET_CREATE_ITEM.get());
+                }
                 output.accept(ModItems.ARCHITECT_BLUEPRINT.get());
                 output.accept(ModItems.CONTROL_CORE.get());
             })
