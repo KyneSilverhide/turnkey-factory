@@ -28,8 +28,13 @@ public class LamplighterScreen extends AbstractContainerScreen<LamplighterMenu> 
     private static final int Y_SPACING = 32;
     private static final int Y_MATERIALS_HEADER = 56;
     private static final int Y_ACTION_ROW = 70;
+    /** Départ de la checklist (montre toutes les conditions à la fois, cf. TurretScreen) ; le texte de
+     *  statut en prose est dessiné juste en dessous, à la position renvoyée par {@link #drawChecklist}. */
     private static final int Y_STATUS = 94;
     private static final int LINE_H = 10;
+    private static final int CHECKLIST_GAP = 6;
+    private static final int COLOR_OK = 0x4FA83D;
+    private static final int COLOR_MISSING = 0xC24B4B;
 
     private static final int LABEL_X = 12;
     private static final int MINUS_X = 72;
@@ -189,6 +194,14 @@ public class LamplighterScreen extends AbstractContainerScreen<LamplighterMenu> 
             materialRow(g, mouseX, mouseY, topPos + Y_MATERIALS_ROW1 + 2 * MATERIAL_ROW_H, new ItemStack(logItem), required, be.availLog(), logTooltip);
         }
 
+        int statusY = topPos + Y_STATUS;
+        if (be != null) {
+            statusY = drawChecklist(g, lx, topPos + Y_STATUS, maxTextWidth,
+                    new ChecklistItem(Component.translatable("gui.turnkey_factory.lamplighter.checklist.link"), be.hasLink()),
+                    new ChecklistItem(Component.translatable("gui.turnkey_factory.lamplighter.checklist.species"), be.hasSpecies()),
+                    new ChecklistItem(Component.translatable("gui.turnkey_factory.lamplighter.checklist.material"), be.hasMaterial()));
+        }
+
         Component status;
         int statusColor;
         if (be == null) {
@@ -222,7 +235,7 @@ public class LamplighterScreen extends AbstractContainerScreen<LamplighterMenu> 
                 }
             }
         }
-        drawWrapped(g, status, lx, topPos + Y_STATUS, maxTextWidth, statusColor);
+        drawWrapped(g, status, lx, statusY, maxTextWidth, statusColor);
 
         if (toggleButton != null) {
             toggleButton.setMessage(toggleLabel());
@@ -244,6 +257,29 @@ public class LamplighterScreen extends AbstractContainerScreen<LamplighterMenu> 
             lineY += LINE_H;
         }
         return lineY;
+    }
+
+    private record ChecklistItem(Component label, boolean ok) {}
+
+    /**
+     * Enchaîne les items horizontalement (façon TurretScreen#drawChecklist : toutes les conditions
+     * visibles à la fois plutôt qu'un seul statut "gagnant"), passe à la ligne si la largeur disponible
+     * est dépassée (colonne étroite ici, cf. maxTextWidth = MATERIALS_X - LABEL_X - 8). Renvoie le Y
+     * juste sous la dernière ligne, pour enchaîner le texte de statut en prose sans chevaucher la
+     * checklist.
+     */
+    private int drawChecklist(GuiGraphics g, int x, int y, int maxWidth, ChecklistItem... items) {
+        int cx = x, cy = y;
+        for (ChecklistItem item : items) {
+            int w = font.width(item.label());
+            if (cx != x && cx + w > x + maxWidth) {
+                cx = x;
+                cy += LINE_H;
+            }
+            g.drawString(font, item.label(), cx, cy, item.ok() ? COLOR_OK : COLOR_MISSING, false);
+            cx += w + CHECKLIST_GAP;
+        }
+        return cy + LINE_H;
     }
 
     @Override

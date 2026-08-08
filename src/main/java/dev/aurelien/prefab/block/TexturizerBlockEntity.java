@@ -169,6 +169,12 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     public List<BlockPos> preview() { return preview; }
     public boolean active() { return active; }
 
+    // ----- Checklist GUI (montre TOUTES les conditions à la fois, cf. TurretScreen#drawChecklist) -----
+
+    public boolean hasLink() { return !linked.isEmpty(); }
+    public boolean hasTool() { return !items.get(SLOT_TOOL).isEmpty() && items.get(SLOT_TOOL).is(palette.toolTag); }
+    public boolean hasMaterial() { return available() > 0; }
+
     /** Démarre/arrête le travail. Refuse le démarrage si aucun inventaire n'est lié (rien à puiser comme pattern). */
     public void setActive(boolean value) {
         if (value && linked.isEmpty()) {

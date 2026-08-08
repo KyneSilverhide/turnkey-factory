@@ -30,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
 
@@ -74,7 +75,11 @@ public class TurretCombat {
 
     private static final int SCAN_INTERVAL = 10;
     private static final int LINK_SCAN_INTERVAL = 20;
-    private static final float DAMAGE = 4.0f;
+    // Réduit de 4.0 à 3.0 : dégâts de type "magic" (bypasses_armor vanilla), donc déjà non réduits par
+    // l'armure de la cible, cumulés à un tir hitscan (ni esquive, ni parade) — 4.0 rendait une tourelle
+    // à 6 lingots de fer disproportionnée par rapport à son coût de craft. Cf. aussi le coût croissant
+    // avec la portée (chargeCost/stress) qui vient maintenant peser sur la même balance.
+    private static final float DAMAGE = 3.0f;
     private static final int TRACER_STEPS = 12;
 
     /**
@@ -103,6 +108,14 @@ public class TurretCombat {
     private boolean targetHostile = true;
     private boolean targetNeutral = false;
     private boolean targetPlayer = false;
+    /**
+     * Joueur ayant posé la tourelle : jamais ciblé, même si "Joueur" est coché (cf. {@link #isEligible}).
+     * {@code null} pour une tourelle posée avant l'ajout de ce champ, ou posée par autre chose qu'un
+     * joueur (dispenser…) — dans ce cas aucune exclusion n'est possible, tant pis, mais on ne bloque
+     * jamais le ciblage "Joueur" pour autant.
+     */
+    @Nullable
+    private UUID ownerId = null;
 
     private int scanCooldown = 0;
     private int fireCooldown = 0;
@@ -153,6 +166,11 @@ public class TurretCombat {
         return Math.max(MIN_RANGE, Math.min(MAX_RANGE, v));
     }
 
+    /** Enregistré une seule fois, à la pose (cf. {@code setPlacedBy} des deux blocs tourelle). */
+    public void setOwner(@Nullable UUID id) {
+        this.ownerId = id;
+    }
+
     // ----- Tick serveur -----
 
     public void serverTick(ServerLevel server) {
@@ -165,7 +183,12 @@ public class TurretCombat {
             if (changed) syncToClient.run();
         }
 
-        if (!active) {
+        // Sans inventaire lié, la tourelle n'a de toute façon ni munitions ni ravitaillement possible :
+        // on évite de scanner/verrouiller des cibles pour rien (même esprit que le refus de démarrage
+        // des 3 autres machines à inventaire vide, cf. leur setActive) — sans toucher à `active`, qui
+        // doit rester le reflet fidèle du signal redstone (cf. ITurret#syncRedstoneState), pas une
+        // condition composite qui rendrait la case "redstone" de la checklist trompeuse.
+        if (!active || linked.isEmpty()) {
             return;
         }
 
@@ -228,13 +251,16 @@ public class TurretCombat {
      * Hostile = {@link Enemy} ; Neutre = {@link NeutralMob} vanilla (dôme de fer, enderman,
      * abeille, piglin...) ; Joueur = hors créatif/spectateur. Les animaux apprivoisés ne sont
      * jamais des cibles, quelle que soit la case cochée (une tourelle qui abat le loup du joueur
-     * serait un piège, pas une fonctionnalité).
+     * serait un piège, pas une fonctionnalité) — et il en va de même pour {@link #ownerId} : le
+     * joueur qui a posé la tourelle n'est JAMAIS une cible, même case "Joueur" cochée (sinon activer
+     * cette option revient à poser un piège contre soi-même dès qu'on repasse à portée).
      */
     private boolean isEligible(LivingEntity e) {
         if (!e.isAlive()) return false;
         if (e instanceof TamableAnimal tamable && tamable.isTame()) return false;
 
         if (e instanceof Player player) {
+            if (ownerId != null && player.getUUID().equals(ownerId)) return false;
             return targetPlayer && !player.isSpectator() && !player.getAbilities().invulnerable;
         }
         if (e instanceof Enemy) {
@@ -352,6 +378,7 @@ public class TurretCombat {
         tag.putBoolean("targetNeutral", targetNeutral);
         tag.putBoolean("targetPlayer", targetPlayer);
         tag.putLongArray("linked", linked.stream().mapToLong(BlockPos::asLong).toArray());
+        if (ownerId != null) tag.putUUID("owner", ownerId);
     }
 
     public void load(CompoundTag tag) {
@@ -365,6 +392,7 @@ public class TurretCombat {
         for (long packed : tag.getLongArray("linked")) {
             linked.add(BlockPos.of(packed));
         }
+        ownerId = tag.hasUUID("owner") ? tag.getUUID("owner") : null;
     }
 
     /** Transitoire (paquets réseau uniquement) : jamais persisté sur disque, cf. {@link #save}. */

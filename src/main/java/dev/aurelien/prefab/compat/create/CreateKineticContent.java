@@ -50,8 +50,14 @@ public final class CreateKineticContent {
     public static final DeferredItem<BlockItem> TURRET_CREATE_ITEM =
             ITEMS.registerSimpleBlockItem("turret_create", TURRET_CREATE);
 
-    /** Coût en stress (SU) constant pour tourner — même ordre de grandeur qu'une petite machine Create. */
-    private static final double STRESS_IMPACT = 4.0;
+    /**
+     * Coût en stress (SU) de référence, enregistré au catalogue Create (lunettes d'ingénieur…) — même
+     * ordre de grandeur qu'une petite machine Create. En jeu, le coût réel appliqué par
+     * {@link TurretCreateBlockEntity#calculateStressApplied} varie avec la portée configurée ; cette
+     * valeur catalogue reste exacte pour la portée par défaut ({@link TurretCombat#DEFAULT_RANGE}),
+     * d'où le partage de cette constante plutôt que deux nombres qui pourraient diverger.
+     */
+    static final double STRESS_IMPACT = 4.0;
 
     public static void register(IEventBus modBus) {
         BLOCKS.register(modBus);

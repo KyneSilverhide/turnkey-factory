@@ -116,6 +116,13 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
     public List<BlockPos> removalPreview() { return removalPreview; }
     public boolean active() { return active; }
 
+    // ----- Checklist GUI (montre TOUTES les conditions à la fois, cf. TurretScreen#drawChecklist) -----
+
+    public boolean hasLink() { return !linked.isEmpty(); }
+    public boolean hasShovel() { return !items.get(SLOT_SHOVEL).isEmpty(); }
+    public boolean hasPickaxe() { return !items.get(SLOT_PICKAXE).isEmpty(); }
+    public boolean hasFill() { return fillSupplied() >= fillNeeded(); }
+
     /**
      * Démarre/arrête le travail. Refuse le démarrage si aucun inventaire n'est lié (rien pour puiser le
      * remblai manquant, ni pour récupérer le débris) — le statut « À l'arrêt » l'indique déjà (cf.

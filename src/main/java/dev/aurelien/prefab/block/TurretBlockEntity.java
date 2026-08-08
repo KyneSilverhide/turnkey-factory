@@ -79,9 +79,15 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
     @Override public boolean hasPower() { return charge > 0; }
     @Override public boolean hasAmmo() { return combat.hasAmmo(); }
 
+    /** Enregistré une seule fois par {@link dev.aurelien.prefab.block.TurretBlock#setPlacedBy}. */
+    public void setOwner(java.util.UUID id) { combat.setOwner(id); }
+
     @Override
     public Component powerLabel() {
-        return Component.translatable("gui.turnkey_factory.turret.fuel", charge);
+        // Nombre de tirs réellement restants À LA PORTÉE ACTUELLE (cf. chargeCostFor) : charge est une
+        // réserve d'énergie brute depuis que le coût par tir varie avec la portée, plus un simple
+        // compteur de tirs — l'afficher tel quel tromperait le joueur sur l'autonomie réelle.
+        return Component.translatable("gui.turnkey_factory.turret.fuel", charge / chargeCostFor(combat.range()));
     }
 
     @Override
@@ -93,10 +99,25 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
         return TurretCombat.clampRange(v);
     }
 
+    /**
+     * Vrai jusqu'au premier tick serveur après (re)création de ce BlockEntity (pose OU chargement d'un
+     * chunk) : {@code active} est persisté (cf. {@link TurretCombat#save}) mais doit rester le reflet du
+     * signal redstone RÉEL, pas d'une valeur figée sur disque — {@code onPlace}/{@code neighborChanged}
+     * (cf. {@link TurretBlock}) ne se redéclenchent pas à un simple rechargement de chunk sans
+     * changement de voisin, donc sans ce resync l'état chargé peut rester en désaccord avec le signal
+     * effectivement présent au bloc.
+     */
+    private boolean pendingRedstoneSync = true;
+
     // ----- Tick serveur -----
 
     public void serverTick() {
         if (!(level instanceof ServerLevel server)) return;
+
+        if (pendingRedstoneSync) {
+            pendingRedstoneSync = false;
+            ITurret.syncRedstoneState(level, getBlockPos());
+        }
 
         combat.serverTick(server);
 
@@ -135,12 +156,23 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
         return AbstractFurnaceBlockEntity.getFuel().getOrDefault(fuel, 0) / TICKS_PER_SHOT;
     }
 
-    /** Décompte 1 tir de la jauge (cf. javadoc de classe) — jamais appelé en dehors d'un tir effectif. */
+    /**
+     * Décompte le coût d'1 tir de la jauge (cf. javadoc de classe) — jamais appelé en dehors d'un tir
+     * effectif. Le coût croît avec la portée configurée ({@link #chargeCostFor}) : une tourelle réglée
+     * au maximum (32) coûte 4× plus cher à faire tourner qu'au minimum (4), plutôt qu'un coût de tir
+     * plat indépendant de la zone de couverture choisie.
+     */
     private boolean tryConsumeShot() {
-        if (charge <= 0) return false;
-        charge--;
+        int cost = chargeCostFor(combat.range());
+        if (charge < cost) return false;
+        charge -= cost;
         syncToClient();
         return true;
+    }
+
+    /** 1 charge au minimum de portée (4), jusqu'à 4 charges au maximum (32) — palier tous les 8 blocs. */
+    private static int chargeCostFor(int range) {
+        return Math.max(1, (range + 7) / 8);
     }
 
     // ----- Synchronisation client -----

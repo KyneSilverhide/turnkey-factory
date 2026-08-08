@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -118,6 +119,16 @@ public class TurretCreateBlock extends KineticBlock implements EntityBlock, ICog
         super.neighborChanged(state, level, pos, neighborBlock, neighborPos, movedByPiston);
         if (!level.isClientSide) {
             ITurret.syncRedstoneState(level, pos);
+        }
+    }
+
+    /** Enregistre le joueur qui pose la tourelle : jamais ciblé, cf. {@link dev.aurelien.prefab.block.TurretCombat#setOwner}. */
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (!level.isClientSide && placer instanceof Player player
+                && level.getBlockEntity(pos) instanceof TurretCreateBlockEntity be) {
+            be.setOwner(player.getUUID());
         }
     }
 }

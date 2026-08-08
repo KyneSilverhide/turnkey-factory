@@ -60,6 +60,10 @@
   "gui.turnkey_factory.leveler.status.no_pickaxe": "En pause : placez une pioche (roche/minerai)",
   "gui.turnkey_factory.leveler.status.no_link": "Démarrage impossible : aucun inventaire lié",
   "gui.turnkey_factory.leveler.status.inactive": "À l'arrêt — appuyez sur Démarrer",
+  "gui.turnkey_factory.leveler.checklist.link": "Lien",
+  "gui.turnkey_factory.leveler.checklist.shovel": "Pelle",
+  "gui.turnkey_factory.leveler.checklist.pickaxe": "Pioche",
+  "gui.turnkey_factory.leveler.checklist.fill": "Remblai",
 
   "gui.turnkey_factory.texturizer.zone": "Rayon",
   "gui.turnkey_factory.texturizer.radius": "Rayon",
@@ -84,6 +88,9 @@
   "gui.turnkey_factory.texturizer.status.no_shovel": "En pause : placez une pelle",
   "gui.turnkey_factory.texturizer.status.no_link": "Démarrage impossible : aucun inventaire lié",
   "gui.turnkey_factory.texturizer.status.inactive": "À l'arrêt — appuyez sur Démarrer",
+  "gui.turnkey_factory.texturizer.checklist.link": "Lien",
+  "gui.turnkey_factory.texturizer.checklist.tool": "Outil",
+  "gui.turnkey_factory.texturizer.checklist.material": "Matériau",
 
   "gui.turnkey_factory.lamplighter.zone": "Portée",
   "gui.turnkey_factory.lamplighter.range": "Portée",
@@ -99,6 +106,9 @@
   "gui.turnkey_factory.lamplighter.status.no_species": "En pause : aucune bûche dans les inventaires liés",
   "gui.turnkey_factory.lamplighter.status.no_link": "Démarrage impossible : aucun inventaire lié",
   "gui.turnkey_factory.lamplighter.status.inactive": "À l'arrêt — appuyez sur Démarrer",
+  "gui.turnkey_factory.lamplighter.checklist.link": "Lien",
+  "gui.turnkey_factory.lamplighter.checklist.species": "Essence",
+  "gui.turnkey_factory.lamplighter.checklist.material": "Matériaux",
 
   "gui.turnkey_factory.turret.zone": "Portée",
   "gui.turnkey_factory.turret.range": "Portée",

@@ -71,8 +71,15 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
     private static final float SPEED_FAST = 100f;
     private static final float SPEED_OVERDRIVE = 200f;
 
-    /** Intervalle entre deux tirs (ticks), indexé par {@link #cadenceTier}. Au palier maximal,
-     *  2 ticks = 10 tirs/s, soit un tir quasi continu. */
+    /**
+     * Intervalle entre deux tirs (ticks), indexé par {@link #cadenceTier}. Au palier maximal, 2 ticks =
+     * 10 tirs/s, soit un tir quasi continu. L'entrée d'index 0 (« réseau à l'arrêt ») ne sert JAMAIS de
+     * cadence de tir réelle — {@link #tryConsumeRotation} bloque déjà le tir avant qu'un intervalle basé
+     * sur ce palier ait pu s'écouler ; elle ne fixe que le délai de nouvelle tentative pendant la panne
+     * (cf. {@code TurretCombat#tryFire}, « panne d'énergie »). Elle reprend {@link
+     * TurretCombat#DEFAULT_FIRE_INTERVAL} par simple commodité (une valeur de repli qui existe déjà),
+     * pas parce qu'un réseau arrêté tirerait à 1 tir/s — ne pas la lire comme un vrai palier de cadence.
+     */
     private static final int[] FIRE_INTERVAL_BY_TIER = {TurretCombat.DEFAULT_FIRE_INTERVAL, 20, 10, 5, 2};
 
     private static final String[] CADENCE_KEYS = {
@@ -86,6 +93,8 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
     private final TurretCombat combat = new TurretCombat(this, this::tryConsumeRotation, this::notifyUpdate,
             this::onFired, this::fireIntervalTicks);
     private int fireSpikeTicksLeft = 0;
+    /** Cf. {@link dev.aurelien.prefab.block.TurretBlockEntity#pendingRedstoneSync} pour la raison d'être. */
+    private boolean pendingRedstoneSync = true;
 
     public TurretCreateBlockEntity(BlockPos pos, BlockState state) {
         super(CreateKineticContent.TURRET_CREATE_BE.get(), pos, state);
@@ -103,6 +112,10 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
             pushStressUpdate();
         }
         if (level instanceof ServerLevel server) {
+            if (pendingRedstoneSync) {
+                pendingRedstoneSync = false;
+                ITurret.syncRedstoneState(level, getBlockPos());
+            }
             combat.serverTick(server);
         }
     }
@@ -116,7 +129,9 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
     @Override public boolean targetPlayer() { return combat.targetPlayer(); }
     @Override public int currentTargetId() { return combat.currentTargetId(); }
     @Override public void setActive(boolean value) { combat.setActive(value); }
-    @Override public void setRange(int r) { combat.setRange(r); }
+    /** Le stress de base dépend de la portée (cf. {@link #calculateStressApplied}) : un changement de
+     *  portée doit donc être immédiatement répercuté au réseau, pas seulement au prochain tir/pic. */
+    @Override public void setRange(int r) { combat.setRange(r); pushStressUpdate(); }
     @Override public void setTargets(boolean hostile, boolean neutral, boolean player) { combat.setTargets(hostile, neutral, player); }
 
     @Override
@@ -128,6 +143,9 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
     public boolean hasAmmo() {
         return combat.hasAmmo();
     }
+
+    /** Enregistré une seule fois par {@link TurretCreateBlock#setPlacedBy}. */
+    public void setOwner(java.util.UUID id) { combat.setOwner(id); }
 
     /**
      * Palier de cadence pour un régime donné : 0 = à l'arrêt (ou sous le seuil de fonctionnement),
@@ -176,11 +194,24 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
         return isSpeedRequirementFulfilled();
     }
 
-    /** Multiplie le coût de base pendant {@link #fireSpikeTicksLeft} ticks après un tir — cf. javadoc
-     *  de classe pour pourquoi ce n'est pas pris en compte tout seul par Create. */
+    /**
+     * Coût de base PROPORTIONNEL À LA PORTÉE configurée, plutôt que la valeur catalogue fixe de
+     * {@link CreateKineticContent#register} : une tourelle réglée large surveille (et peut engager) un
+     * volume bien plus grand, elle doit peser plus lourd sur le réseau. Le facteur est calé pour que la
+     * portée par défaut ({@link TurretCombat#DEFAULT_RANGE} = 12) retombe exactement sur l'ancien coût
+     * fixe (4.0 SU) — aucune régression pour une tourelle jamais retouchée, seulement un delta au-dessus
+     * ou en dessous selon que le joueur agrandit ou réduit la zone. La valeur enregistrée dans le
+     * catalogue Create (lunettes d'ingénieur, etc.) reste donc une référence exacte "à portée par
+     * défaut", pas une approximation.
+     * <p>
+     * Multiplie ensuite ce coût de base pendant {@link #fireSpikeTicksLeft} ticks après un tir — cf.
+     * javadoc de classe pour pourquoi ce n'est pas pris en compte tout seul par Create.
+     */
+    private static final double STRESS_PER_RANGE_UNIT = CreateKineticContent.STRESS_IMPACT / TurretCombat.DEFAULT_RANGE;
+
     @Override
     public float calculateStressApplied() {
-        float base = super.calculateStressApplied();
+        float base = (float) (combat.range() * STRESS_PER_RANGE_UNIT);
         if (fireSpikeTicksLeft > 0) {
             lastStressApplied = base * FIRE_SPIKE_MULTIPLIER;
             return lastStressApplied;

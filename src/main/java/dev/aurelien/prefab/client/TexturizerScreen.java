@@ -25,8 +25,13 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
     private static final int Y_INFO = 72;
     private static final int Y_TOOLS_LABEL = 96;
     private static final int Y_ACTION_ROW = 106;
+    /** Départ de la checklist (montre toutes les conditions à la fois, cf. TurretScreen) ; le texte de
+     *  statut en prose est dessiné juste en dessous, à la position renvoyée par {@link #drawChecklist}. */
     private static final int Y_STATUS = 132;
     private static final int LINE_H = 10; // hauteur de ligne pour le texte multi-lignes (info/statut)
+    private static final int CHECKLIST_GAP = 6;
+    private static final int COLOR_OK = 0x4FA83D;
+    private static final int COLOR_MISSING = 0xC24B4B;
 
     private static final int LABEL_X = 12;
     private static final int MINUS_X = 72;
@@ -190,6 +195,14 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
                 : "gui.turnkey_factory.texturizer.tool.shovel");
         g.drawString(font, toolsLabel, leftPos + TOOL_X - font.width(toolsLabel) / 2 + 9, topPos + Y_TOOLS_LABEL, 0xC0C0FF, false);
 
+        int statusY = topPos + Y_STATUS;
+        if (be != null) {
+            statusY = drawChecklist(g, lx, topPos + Y_STATUS, maxTextWidth,
+                    new ChecklistItem(Component.translatable("gui.turnkey_factory.texturizer.checklist.link"), be.hasLink()),
+                    new ChecklistItem(Component.translatable("gui.turnkey_factory.texturizer.checklist.tool"), be.hasTool()),
+                    new ChecklistItem(Component.translatable("gui.turnkey_factory.texturizer.checklist.material"), be.hasMaterial()));
+        }
+
         Component status;
         int statusColor;
         if (be == null) {
@@ -229,7 +242,7 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
                 }
             }
         }
-        drawWrapped(g, status, lx, topPos + Y_STATUS, maxTextWidth, statusColor);
+        drawWrapped(g, status, lx, statusY, maxTextWidth, statusColor);
 
         if (toggleButton != null) {
             toggleButton.setMessage(toggleLabel());
@@ -245,6 +258,28 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
             g.drawString(font, line, x, lineY, color, false);
             lineY += LINE_H;
         }
+    }
+
+    private record ChecklistItem(Component label, boolean ok) {}
+
+    /**
+     * Enchaîne les items horizontalement (façon TurretScreen#drawChecklist : toutes les conditions
+     * visibles à la fois plutôt qu'un seul statut "gagnant"), passe à la ligne si la largeur disponible
+     * est dépassée. Renvoie le Y juste sous la dernière ligne, pour enchaîner le texte de statut en
+     * prose sans chevaucher la checklist.
+     */
+    private int drawChecklist(GuiGraphics g, int x, int y, int maxWidth, ChecklistItem... items) {
+        int cx = x, cy = y;
+        for (ChecklistItem item : items) {
+            int w = font.width(item.label());
+            if (cx != x && cx + w > x + maxWidth) {
+                cx = x;
+                cy += LINE_H;
+            }
+            g.drawString(font, item.label(), cx, cy, item.ok() ? COLOR_OK : COLOR_MISSING, false);
+            cx += w + CHECKLIST_GAP;
+        }
+        return cy + LINE_H;
     }
 
     @Override

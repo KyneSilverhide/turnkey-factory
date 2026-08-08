@@ -60,6 +60,10 @@
   "gui.turnkey_factory.leveler.status.no_pickaxe": "Paused: place a pickaxe (rock/ore)",
   "gui.turnkey_factory.leveler.status.no_link": "Cannot start: no linked inventory",
   "gui.turnkey_factory.leveler.status.inactive": "Stopped — press Start",
+  "gui.turnkey_factory.leveler.checklist.link": "Link",
+  "gui.turnkey_factory.leveler.checklist.shovel": "Shovel",
+  "gui.turnkey_factory.leveler.checklist.pickaxe": "Pickaxe",
+  "gui.turnkey_factory.leveler.checklist.fill": "Fill",
 
   "gui.turnkey_factory.texturizer.zone": "Radius",
   "gui.turnkey_factory.texturizer.radius": "Radius",
@@ -84,6 +88,9 @@
   "gui.turnkey_factory.texturizer.status.no_shovel": "Paused: place a shovel",
   "gui.turnkey_factory.texturizer.status.no_link": "Cannot start: no linked inventory",
   "gui.turnkey_factory.texturizer.status.inactive": "Stopped — press Start",
+  "gui.turnkey_factory.texturizer.checklist.link": "Link",
+  "gui.turnkey_factory.texturizer.checklist.tool": "Tool",
+  "gui.turnkey_factory.texturizer.checklist.material": "Material",
 
   "gui.turnkey_factory.lamplighter.zone": "Range",
   "gui.turnkey_factory.lamplighter.range": "Range",
@@ -99,6 +106,9 @@
   "gui.turnkey_factory.lamplighter.status.no_species": "Paused: no logs in linked inventories",
   "gui.turnkey_factory.lamplighter.status.no_link": "Cannot start: no linked inventory",
   "gui.turnkey_factory.lamplighter.status.inactive": "Stopped — press Start",
+  "gui.turnkey_factory.lamplighter.checklist.link": "Link",
+  "gui.turnkey_factory.lamplighter.checklist.species": "Species",
+  "gui.turnkey_factory.lamplighter.checklist.material": "Materials",
 
   "gui.turnkey_factory.turret.zone": "Range",
   "gui.turnkey_factory.turret.range": "Range",

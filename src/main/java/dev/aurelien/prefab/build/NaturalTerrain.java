@@ -60,12 +60,20 @@ public final class NaturalTerrain {
             Blocks.SANDSTONE, Blocks.RED_SANDSTONE
     );
 
-    /** Blocs naturels supplémentaires non couverts par les tags ci-dessus. */
+    /**
+     * Blocs naturels supplémentaires non couverts par les tags ci-dessus. Volontairement SANS
+     * {@code OBSIDIAN} ni {@code ANCIENT_DEBRIS} : le jeu ne distingue pas une génération naturelle
+     * (lac de lave, poche du Nether) d'une pose du joueur (portail, coffre-fort, trophée miné), et
+     * {@link dev.aurelien.prefab.block.LevelerBlockEntity} retire un bloc sans se soucier de savoir
+     * s'il rapporte un butin — avec un outil insuffisant (pioche en fer p. ex.), l'un ou l'autre serait
+     * effacé sans rien rendre. On préfère les traiter comme « à protéger » par défaut (le Controller
+     * comme la Niveleuse les bloqueront/laisseront de côté), quitte à devoir les dégager manuellement.
+     */
     private static final Set<Block> NATURAL_BLOCKS = Set.of(
             Blocks.GRAVEL, Blocks.CLAY, Blocks.MUD, Blocks.MUDDY_MANGROVE_ROOTS, Blocks.MANGROVE_ROOTS,
             Blocks.MOSS_BLOCK, Blocks.MOSS_CARPET, Blocks.VINE, Blocks.GLOW_LICHEN,
             Blocks.DRIPSTONE_BLOCK, Blocks.POINTED_DRIPSTONE, Blocks.CALCITE, Blocks.MAGMA_BLOCK,
-            Blocks.SOUL_SAND, Blocks.SOUL_SOIL, Blocks.GLOWSTONE, Blocks.OBSIDIAN, Blocks.ANCIENT_DEBRIS,
+            Blocks.SOUL_SAND, Blocks.SOUL_SOIL, Blocks.GLOWSTONE,
             Blocks.AMETHYST_BLOCK, Blocks.BUDDING_AMETHYST, Blocks.BAMBOO, Blocks.SUGAR_CANE, Blocks.CACTUS,
             Blocks.PUMPKIN, Blocks.MELON, Blocks.SWEET_BERRY_BUSH, Blocks.BIG_DRIPLEAF, Blocks.SMALL_DRIPLEAF,
             Blocks.HANGING_ROOTS, Blocks.SPORE_BLOSSOM, Blocks.BROWN_MUSHROOM_BLOCK, Blocks.RED_MUSHROOM_BLOCK,

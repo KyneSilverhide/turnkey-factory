@@ -118,6 +118,12 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider 
     public String speciesLogId() { return speciesLogId; }
     public boolean active() { return active; }
 
+    // ----- Checklist GUI (montre TOUTES les conditions à la fois, cf. TurretScreen#drawChecklist) -----
+
+    public boolean hasLink() { return !linked.isEmpty(); }
+    public boolean hasSpecies() { return !speciesLabel.isEmpty(); }
+    public boolean hasMaterial() { return availTorch > 0 && availIron > 0 && availLog > 0; }
+
     public void setActive(boolean value) {
         if (value && linked.isEmpty()) {
             return;

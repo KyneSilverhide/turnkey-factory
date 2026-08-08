@@ -13,7 +13,7 @@
     "I": { "item": "minecraft:iron_ingot" },
     "S": { "item": "minecraft:spyglass" },
     "C": { "item": "minecraft:comparator" },
-    "G": { "item": "create:cogwheel" }
+    "G": { "item": "create:precision_mechanism" }
   },
   "result": {
     "id": "turnkey_factory:turret_create",
