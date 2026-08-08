@@ -13,6 +13,10 @@
   "item.turnkey_factory.architect_blueprint": "Architect's Blueprint",
   "item.turnkey_factory.control_core": "Control Core",
   "item.turnkey_factory.copper_nugget": "Copper Nugget",
+  "item.turnkey_factory.ammo_slug": "Armor-Piercing Slug",
+  "item.turnkey_factory.ammo_incendiary": "Incendiary Slug",
+  "item.turnkey_factory.incendiary_charge": "Incendiary Primer",
+  "item.turnkey_factory.incomplete_ammo_slug": "Incomplete Slug",
 
   "gui.turnkey_factory.width": "Width",
   "gui.turnkey_factory.length": "Length",

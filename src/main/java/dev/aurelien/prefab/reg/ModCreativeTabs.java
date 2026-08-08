@@ -39,6 +39,12 @@ public class ModCreativeTabs {
                 if (!CreateCompat.isLoaded()) {
                     output.accept(ModItems.COPPER_NUGGET.get());
                 }
+                // Munitions, du palier le plus faible au plus fort. L'item transitoire de l'assemblage
+                // séquencé (INCOMPLETE_AMMO_SLUG) n'y figure pas : il n'a aucun usage en main, il ne
+                // fait que circuler entre les machines de Create.
+                output.accept(ModItems.AMMO_SLUG.get());
+                output.accept(ModItems.INCENDIARY_CHARGE.get());
+                output.accept(ModItems.AMMO_INCENDIARY.get());
             })
             .build());
 }

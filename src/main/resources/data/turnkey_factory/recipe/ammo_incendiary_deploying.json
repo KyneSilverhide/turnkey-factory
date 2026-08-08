@@ -1,0 +1,18 @@
+{
+  "__comment": "keep_held_item : le deployeur abime l'amorce d'un point au lieu de la consommer (cf. BeltDeployerCallbacks, qui appelle hurtAndBreak plutot que shrink quand la recette le demande) — meme mecanique que le papier de verre, donc 8 obus par amorce.",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "create"
+    }
+  ],
+  "type": "create:deploying",
+  "ingredients": [
+    { "item": "turnkey_factory:ammo_slug" },
+    { "item": "turnkey_factory:incendiary_charge" }
+  ],
+  "keep_held_item": true,
+  "results": [
+    { "id": "turnkey_factory:ammo_incendiary" }
+  ]
+}

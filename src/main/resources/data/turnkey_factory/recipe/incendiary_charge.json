@@ -1,0 +1,14 @@
+{
+  "__comment": "Disponible avec ou sans Create, contrairement a la pepite de cuivre : il n'y a pas de doublon d'item a masquer ici, seulement une seconde facon de fabriquer le meme objet. La version melangeuse (incendiary_charge_mixing.json) n'apporte que l'automatisation.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    { "item": "minecraft:gunpowder" },
+    { "item": "minecraft:gunpowder" },
+    { "item": "minecraft:blaze_powder" }
+  ],
+  "result": {
+    "id": "turnkey_factory:incendiary_charge",
+    "count": 1
+  }
+}

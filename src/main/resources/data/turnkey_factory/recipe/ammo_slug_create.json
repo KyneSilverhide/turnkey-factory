@@ -1,0 +1,47 @@
+{
+  "__comment": "Assemblage sequence : lingot de fer -> presse -> depot d'un silex (le noyau perforant) -> depot d'une pepite quelconque (la ceinture). 'loops' multiplie chaque etape, donc le cout reel est 1 lingot + 2 silex + 2 pepites pour 8 obus. Le silex est illimite (cobble -> broyage -> gravier -> broyage -> silex, 100% a chaque etape), ce qui rend la ligne autonome depuis un simple generateur de cobble.",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "create"
+    }
+  ],
+  "type": "create:sequenced_assembly",
+  "ingredient": { "item": "minecraft:iron_ingot" },
+  "loops": 2,
+  "transitional_item": { "id": "turnkey_factory:incomplete_ammo_slug" },
+  "results": [
+    { "id": "turnkey_factory:ammo_slug", "count": 8 }
+  ],
+  "sequence": [
+    {
+      "type": "create:pressing",
+      "ingredients": [
+        { "item": "turnkey_factory:incomplete_ammo_slug" }
+      ],
+      "results": [
+        { "id": "turnkey_factory:incomplete_ammo_slug" }
+      ]
+    },
+    {
+      "type": "create:deploying",
+      "ingredients": [
+        { "item": "turnkey_factory:incomplete_ammo_slug" },
+        { "item": "minecraft:flint" }
+      ],
+      "results": [
+        { "id": "turnkey_factory:incomplete_ammo_slug" }
+      ]
+    },
+    {
+      "type": "create:deploying",
+      "ingredients": [
+        { "item": "turnkey_factory:incomplete_ammo_slug" },
+        { "tag": "c:nuggets" }
+      ],
+      "results": [
+        { "id": "turnkey_factory:incomplete_ammo_slug" }
+      ]
+    }
+  ]
+}

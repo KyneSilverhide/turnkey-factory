@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;
@@ -128,6 +129,37 @@ public final class InventoryNetwork {
                 }
             }
         }
+    }
+
+    /**
+     * Prélève <strong>une</strong> unité du premier item satisfaisant {@code eligible} rencontré dans
+     * l'ordre des emplacements (inventaires dans l'ordre du lien, puis emplacements de 0 à n) et
+     * renvoie l'item prélevé, ou {@code null} si rien d'éligible n'est disponible. Sert au choix des
+     * munitions de la tourelle : le coffre se vide de haut à gauche vers le bas à droite, donc le
+     * joueur décide de l'ordre de tir en rangeant, au lieu de subir un tirage au sort.
+     * <p>
+     * Recherche et extraction en une seule passe, volontairement : repérer l'item puis appeler
+     * {@link #extract} referait un parcours qui peut retomber sur un autre emplacement (même item
+     * rangé plus haut, inventaire modifié entre-temps par un hopper). La garantie d'ordre ne vaut que
+     * <em>dans</em> un inventaire donné : entre inventaires, l'ordre est celui de la découverte du
+     * flood-fill (cf. {@link #rescan}), qui n'a rien de visuel.
+     */
+    @Nullable
+    public static Item extractFirstEligible(ServerLevel server, List<BlockPos> linked, Predicate<Item> eligible) {
+        for (BlockPos p : linked) {
+            if (!server.isLoaded(p)) continue;
+            IItemHandler handler = server.getCapability(Capabilities.ItemHandler.BLOCK, p, null);
+            if (handler == null) continue;
+            for (int slot = 0; slot < handler.getSlots(); slot++) {
+                ItemStack stack = handler.getStackInSlot(slot);
+                if (stack.isEmpty() || !eligible.test(stack.getItem())) continue;
+                ItemStack taken = handler.extractItem(slot, 1, false);
+                // Un handler peut refuser l'extraction (emplacement en lecture seule, filtre…) :
+                // dans ce cas on continue la recherche au lieu de renvoyer une munition fantôme.
+                if (!taken.isEmpty()) return taken.getItem();
+            }
+        }
+        return null;
     }
 
     /**

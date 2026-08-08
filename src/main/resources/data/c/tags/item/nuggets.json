@@ -1,0 +1,7 @@
+{
+  "__comment": "c:nuggets n'agrege PAS ses sous-tags : NeoForge y liste #c:nuggets/gold et #c:nuggets/iron, Create y liste ses items en direct (copper/zinc/brass/experience), et personne n'y met #c:nuggets/copper. Notre pepite, declaree uniquement dans c:nuggets/copper, serait donc refusee par notre propre recette d'obus (qui accepte #c:nuggets) — d'ou cet ajout explicite.",
+  "replace": false,
+  "values": [
+    "turnkey_factory:copper_nugget"
+  ]
+}

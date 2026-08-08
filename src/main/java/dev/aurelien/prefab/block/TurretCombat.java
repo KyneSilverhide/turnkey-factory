@@ -1,6 +1,7 @@
 package dev.aurelien.prefab.block;
 
 import dev.aurelien.prefab.build.InventoryNetwork;
+import dev.aurelien.prefab.reg.ModItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -47,14 +48,32 @@ import java.util.function.IntSupplier;
  * pic de stress ponctuel, sans concept équivalent côté charbon (no-op là-bas).
  * <p>
  * Munitions : identiques pour les deux variantes (contrairement à l'énergie), donc gérées ici plutôt
- * que déléguées au propriétaire. Une pépite de fer vaut les dégâts de base ; une pépite de cuivre
- * vaut moitié moins. Les deux sont reconnues par tag conventionnel ({@code c:nuggets/iron} /
- * {@link #NUGGETS_COPPER}) et non par item précis, donc la pépite de cuivre de n'importe quel mod
- * fait office de munition, pas seulement celle du nôtre (cf. la javadoc de la constante).
+ * que déléguées au propriétaire. Quatre paliers, du plus faible au plus fort (cf. {@link #ammoOf}) :
+ * <table border="1">
+ *   <caption>Paliers de munitions</caption>
+ *   <tr><th>munition</th><th>dégâts</th><th>effet</th></tr>
+ *   <tr><td>pépite de cuivre</td><td>×0,5</td><td>—</td></tr>
+ *   <tr><td>pépite de fer</td><td>×1,0</td><td>—</td></tr>
+ *   <tr><td>obus perforant</td><td>×2,0</td><td>—</td></tr>
+ *   <tr><td>obus incendiaire</td><td>×2,0</td><td>enflamme 5 s</td></tr>
+ * </table>
+ * Le multiplicateur porte sur les dégâts de base de l'<em>arme montée</em>
+ * ({@code TurretWeaponBlock#baseDamage}), relue à chaque tir : changer d'arme change la munition de
+ * valeur sans rien recalculer ici. Les pépites sont reconnues par tag conventionnel
+ * ({@code c:nuggets/iron} / {@link #NUGGETS_COPPER}) et non par item précis, donc celle de n'importe
+ * quel mod fait office de munition, pas seulement la nôtre (cf. la javadoc de la constante).
+ * <p>
  * Piochées dans les inventaires liés ({@link InventoryNetwork}, même flood-fill que les autres
- * machines) au moment du tir, jamais en avance : pas de jauge à charger, juste 1 nugget consommé par
- * tir réussi. Si aucun nugget n'est disponible, le tir est reporté (cible conservée) — même
- * comportement qu'une panne d'énergie temporaire.
+ * machines) au moment du tir, jamais en avance : pas de jauge à charger, juste 1 munition consommée
+ * par tir réussi. Si rien n'est disponible, le tir est reporté (cible conservée) — même comportement
+ * qu'une panne d'énergie temporaire.
+ * <p>
+ * <strong>Ordre de consommation :</strong> celui des emplacements, pas un tirage au sort
+ * ({@link InventoryNetwork#extractFirstEligible}). Le coffre se vide donc de haut à gauche vers le
+ * bas à droite, et ranger ses munitions suffit à décider dans quel ordre elles partent — un tirage
+ * pondéré par les quantités rendait l'obus perforant invisible dès qu'il côtoyait une grosse réserve
+ * de pépites. La garantie ne vaut qu'<em>à l'intérieur</em> d'un inventaire : entre coffres, l'ordre
+ * est celui de la découverte du flood-fill, qui n'a rien de visuel.
  */
 public class TurretCombat {
     public static final int MIN_RANGE = 4;
@@ -317,9 +336,10 @@ public class TurretCombat {
             return;
         }
 
-        // En panne de munitions : même traitement qu'une panne d'énergie, cible conservée.
-        Item ammo = InventoryNetwork.pickWeightedRandom(server, linked, TurretCombat::isAmmo, server.getRandom());
-        if (ammo == null) {
+        // En panne de munitions : même traitement qu'une panne d'énergie, cible conservée. Sondage
+        // non destructif volontaire : l'énergie se consomme entre les deux, et prélever la munition
+        // d'abord obligerait à la remettre en cas de panne de courant.
+        if (InventoryNetwork.countEligible(server, linked, TurretCombat::isAmmo) <= 0) {
             return;
         }
 
@@ -329,25 +349,59 @@ public class TurretCombat {
             return;
         }
 
-        InventoryNetwork.extract(server, linked, ammo, 1);
+        Item ammo = InventoryNetwork.extractFirstEligible(server, linked, TurretCombat::isAmmo);
+        // Course quasi impossible (rien ne s'intercale entre le sondage et ici dans le même tick,
+        // sauf un handler qui refuserait l'extraction) : on préfère perdre le coup que tirer gratis.
+        if (ammo == null) {
+            return;
+        }
         if (updateHasAmmo(server)) syncToClient.run();
-        target.hurt(server.damageSources().magic(), damageFor(ammo, weapon.baseDamage()));
+
+        Ammo kind = ammoOf(ammo);
+        if (kind == null) return; // inatteignable : isAmmo, donc ammoOf, vient de filtrer cet item
+
+        target.hurt(server.damageSources().magic(), weapon.baseDamage() * kind.damageMultiplier());
+        if (kind.igniteSeconds() > 0) target.igniteForSeconds(kind.igniteSeconds());
         playFireSound(server);
         spawnTracer(server, origin, targetPos);
         onFired.run();
     }
 
-    private static boolean isAmmo(Item item) {
+    /**
+     * Palier de munition : multiplicateur appliqué aux dégâts de base de l'arme montée, et durée
+     * d'embrasement de la cible ({@code 0} = aucun).
+     */
+    private record Ammo(float damageMultiplier, float igniteSeconds) {}
+
+    private static final Ammo TIER_COPPER = new Ammo(0.5f, 0f);
+    private static final Ammo TIER_IRON = new Ammo(1.0f, 0f);
+    private static final Ammo TIER_SLUG = new Ammo(2.0f, 0f);
+    /** Même impact que l'obus perforant : la poudre paie l'embrasement, pas des dégâts bruts. */
+    private static final Ammo TIER_INCENDIARY = new Ammo(2.0f, 5f);
+
+    /**
+     * Palier correspondant à {@code item}, ou {@code null} si ce n'est pas une munition. Les obus
+     * manufacturés sont reconnus par item précis (ce sont les nôtres), les pépites par tag
+     * conventionnel, pour que celles de n'importe quel mod fassent l'affaire. Le fer est testé avant
+     * le cuivre : un item exotique déclaré dans les deux tags garde alors les dégâts pleins, au lieu
+     * que le résultat dépende de l'ordre des branches.
+     * <p>
+     * Les {@code .get()} restent <strong>dans</strong> la méthode : un champ statique initialisé
+     * depuis un {@code DeferredItem} se résoudrait au chargement de la classe, avant que le registre
+     * ne soit rempli.
+     */
+    @Nullable
+    private static Ammo ammoOf(Item item) {
+        if (item == ModItems.AMMO_INCENDIARY.get()) return TIER_INCENDIARY;
+        if (item == ModItems.AMMO_SLUG.get()) return TIER_SLUG;
         ItemStack stack = new ItemStack(item);
-        return stack.is(Tags.Items.NUGGETS_IRON) || stack.is(NUGGETS_COPPER);
+        if (stack.is(Tags.Items.NUGGETS_IRON)) return TIER_IRON;
+        if (stack.is(NUGGETS_COPPER)) return TIER_COPPER;
+        return null;
     }
 
-    /** Pépite de fer = dégâts de base de l'arme montée ; pépite de cuivre = moitié moins (cf. javadoc
-     *  de classe). Le fer est testé en premier plutôt que le cuivre : un item exotique déclaré dans
-     *  les deux tags garde alors les dégâts pleins, au lieu que le résultat dépende de l'ordre des
-     *  branches. */
-    private static float damageFor(Item ammo, float base) {
-        return new ItemStack(ammo).is(Tags.Items.NUGGETS_IRON) ? base : base * 0.5f;
+    private static boolean isAmmo(Item item) {
+        return ammoOf(item) != null;
     }
 
     /**

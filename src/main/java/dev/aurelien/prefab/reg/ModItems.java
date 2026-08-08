@@ -1,6 +1,7 @@
 package dev.aurelien.prefab.reg;
 
 import dev.aurelien.prefab.PrefabMod;
+import dev.aurelien.prefab.item.IncendiaryChargeItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -49,4 +50,36 @@ public class ModItems {
      * l'inventaire du joueur.
      */
     public static final DeferredItem<Item> COPPER_NUGGET = ITEMS.registerSimpleItem("copper_nugget");
+
+    // Munitions manufacturées (cf. le tableau des paliers dans TurretCombat).
+    /**
+     * Obus perforant : corps en fer, noyau de silex, ceinture de pépite — dégâts doublés par rapport
+     * à une pépite de fer. Le silex tient la place qu'occuperait la poudre dans un vrai obus : Create
+     * n'a aucune recette qui produise de la poudre à canon, alors que le silex se fabrique à l'infini
+     * depuis un simple générateur de cobble (cobble → broyage → gravier → broyage → silex, 100 % à
+     * chaque étape). La tourelle est de toute façon électrique, elle lance le projectile au lieu de
+     * le propulser par combustion — rien à justifier côté fiction.
+     */
+    public static final DeferredItem<Item> AMMO_SLUG = ITEMS.registerSimpleItem("ammo_slug");
+
+    /** Obus incendiaire : mêmes dégâts que l'obus perforant, mais enflamme la cible (cf. TurretCombat). */
+    public static final DeferredItem<Item> AMMO_INCENDIARY = ITEMS.registerSimpleItem("ammo_incendiary");
+
+    /**
+     * Amorce incendiaire, 8 charges (cf. {@link IncendiaryChargeItem} pour le mécanisme d'usure).
+     * {@code durability} force au passage une taille de pile de 1, ce qui est le bon comportement
+     * pour un item destiné à être tenu par un déployeur.
+     */
+    public static final DeferredItem<Item> INCENDIARY_CHARGE =
+            ITEMS.registerItem("incendiary_charge", IncendiaryChargeItem::new, new Item.Properties().durability(8));
+
+    /**
+     * Item transitoire de l'assemblage séquencé de l'obus perforant : c'est lui qui circule sur le
+     * tapis entre la presse et les déployeurs. Il n'a d'usage qu'avec Create, mais reste enregistré
+     * inconditionnellement, pour la même raison que {@link #COPPER_NUGGET} — un item retiré du
+     * registre vide silencieusement les piles correspondantes au chargement du monde. Sans Create il
+     * est simplement introuvable : aucune recette ne le produit et il n'apparaît pas dans l'onglet
+     * créatif.
+     */
+    public static final DeferredItem<Item> INCOMPLETE_AMMO_SLUG = ITEMS.registerSimpleItem("incomplete_ammo_slug");
 }

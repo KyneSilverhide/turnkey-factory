@@ -1,0 +1,13 @@
+{
+  "__comment": "L'amorce n'est pas consommee mais rendue abimee d'un point (cf. IncendiaryChargeItem, qui passe par le reliquat d'artisanat sensible a la pile de NeoForge) : 8 obus par amorce, exactement comme au deployeur.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    { "item": "turnkey_factory:ammo_slug" },
+    { "item": "turnkey_factory:incendiary_charge" }
+  ],
+  "result": {
+    "id": "turnkey_factory:ammo_incendiary",
+    "count": 1
+  }
+}

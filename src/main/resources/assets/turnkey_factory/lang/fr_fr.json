@@ -13,6 +13,10 @@
   "item.turnkey_factory.architect_blueprint": "Plan d'architecte",
   "item.turnkey_factory.control_core": "Cœur de contrôle",
   "item.turnkey_factory.copper_nugget": "Pépite de cuivre",
+  "item.turnkey_factory.ammo_slug": "Obus perforant",
+  "item.turnkey_factory.ammo_incendiary": "Obus incendiaire",
+  "item.turnkey_factory.incendiary_charge": "Amorce incendiaire",
+  "item.turnkey_factory.incomplete_ammo_slug": "Ébauche d'obus",
 
   "gui.turnkey_factory.width": "Largeur",
   "gui.turnkey_factory.length": "Longueur",
