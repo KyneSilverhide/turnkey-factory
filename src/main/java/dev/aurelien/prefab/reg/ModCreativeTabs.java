@@ -31,6 +31,12 @@ public class ModCreativeTabs {
                 }
                 output.accept(ModItems.ARCHITECT_BLUEPRINT.get());
                 output.accept(ModItems.CONTROL_CORE.get());
+                // Notre pépite de cuivre s'efface devant celle de Create quand il est chargé, comme sa
+                // recette (cf. ModItems#COPPER_NUGGET) : une seule pépite visible pour le joueur, alors
+                // que l'item, lui, reste enregistré.
+                if (!CreateCompat.isLoaded()) {
+                    output.accept(ModItems.COPPER_NUGGET.get());
+                }
             })
             .build());
 }

@@ -35,9 +35,57 @@ import java.util.List;
  * {@code saveAdditional}/{@code getUpdateTag} sont {@code final} chez Create, il faut passer par
  * {@link #write}/{@link #read} et déclencher la sync via {@code notifyUpdate()} — jamais
  * {@code level.sendBlockUpdated(...)}.
+ * <p>
+ * Le coût en stress de base ({@link CreateKineticContent#STRESS_IMPACT}) est constant tant que le
+ * bloc reste attaché au réseau (Create le somme dans {@code KineticNetwork.members}, indépendamment
+ * de l'état "actif"/à vide de la tourelle — même une tourelle idle fait tourner l'engrenage). Un tir
+ * ajoute par-dessus un pic ponctuel ({@link #FIRE_SPIKE_MULTIPLIER}, pendant {@link
+ * #FIRE_SPIKE_TICKS}) : {@link #calculateStressApplied} multiplie la valeur de base tant que
+ * {@link #fireSpikeTicksLeft} n'est pas retombé à zéro. Create ne recalcule pas ce coût tout seul à
+ * chaque tick (il est mis en cache par membre dans le réseau) : {@link #pushStressUpdate} force la
+ * prise en compte immédiate via {@code KineticNetwork#updateStressFor}, exactement comme le fait
+ * {@code GeneratingKineticBlockEntity} quand sa vitesse générée change (vérifié par javap, pas de
+ * doc officielle pour ce mécanisme).
  */
 public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuProvider, ITurret {
-    private final TurretCombat combat = new TurretCombat(this, this::tryConsumeRotation, this::notifyUpdate);
+    /** Multiplicateur de stress appliqué brièvement à chaque tir, par-dessus le coût de base constant. */
+    private static final float FIRE_SPIKE_MULTIPLIER = 3.0f;
+    /** Durée du pic en ticks (10 = 0.5s) — nettement plus court que l'intervalle entre deux tirs. */
+    private static final int FIRE_SPIKE_TICKS = 10;
+
+    /**
+     * Seuils de régime (tr/min) délimitant les paliers de cadence. Alignés sur les valeurs par
+     * défaut de Create ({@code mediumSpeed} = 30, {@code fastSpeed} = 100, {@code maxRotationSpeed}
+     * = 256, relevées dans {@code CKinetics}), mais <strong>recopiés</strong> plutôt que lus depuis
+     * {@code AllConfigs} : cette échelle sert aussi à l'affichage ({@link #powerLabel}), qui tourne
+     * côté client alors que la config est côté serveur. Une seule et même table des deux côtés
+     * garantit que ce qu'annonce l'écran est exactement ce que fait le serveur — c'est ce que le
+     * joueur vérifie, bien plus que la concordance avec le texte des lunettes d'ingénieur.
+     * <p>
+     * Le palier maximal se déclenche à 200 tr/min et non à 256 pile : {@code getSpeed()} est un
+     * flottant issu d'une chaîne de multiplications par les engrenages, viser l'égalité exacte avec
+     * le maximum n'est pas fiable, et rater de 0.5 tr/min coûterait un palier entier sans le
+     * moindre retour visible.
+     */
+    private static final float SPEED_MEDIUM = 30f;
+    private static final float SPEED_FAST = 100f;
+    private static final float SPEED_OVERDRIVE = 200f;
+
+    /** Intervalle entre deux tirs (ticks), indexé par {@link #cadenceTier}. Au palier maximal,
+     *  2 ticks = 10 tirs/s, soit un tir quasi continu. */
+    private static final int[] FIRE_INTERVAL_BY_TIER = {TurretCombat.DEFAULT_FIRE_INTERVAL, 20, 10, 5, 2};
+
+    private static final String[] CADENCE_KEYS = {
+            "gui.turnkey_factory.turret.cadence.none",
+            "gui.turnkey_factory.turret.cadence.slow",
+            "gui.turnkey_factory.turret.cadence.medium",
+            "gui.turnkey_factory.turret.cadence.fast",
+            "gui.turnkey_factory.turret.cadence.max",
+    };
+
+    private final TurretCombat combat = new TurretCombat(this, this::tryConsumeRotation, this::notifyUpdate,
+            this::onFired, this::fireIntervalTicks);
+    private int fireSpikeTicksLeft = 0;
 
     public TurretCreateBlockEntity(BlockPos pos, BlockState state) {
         super(CreateKineticContent.TURRET_CREATE_BE.get(), pos, state);
@@ -51,6 +99,9 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
     /** Appelé par le ticker du bloc, côté client et serveur (cf. {@link TurretCreateBlock#getTicker}). */
     public void tick() {
         super.tick();
+        if (fireSpikeTicksLeft > 0 && --fireSpikeTicksLeft == 0) {
+            pushStressUpdate();
+        }
         if (level instanceof ServerLevel server) {
             combat.serverTick(server);
         }
@@ -74,8 +125,36 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
     }
 
     @Override
+    public boolean hasAmmo() {
+        return combat.hasAmmo();
+    }
+
+    /**
+     * Palier de cadence pour un régime donné : 0 = à l'arrêt (ou sous le seuil de fonctionnement),
+     * puis 1 à 4 du plus lent au plus rapide. Statique et sans lecture de config, donc utilisable
+     * indifféremment côté serveur (cadence réelle) et côté client (libellé) — cf. la javadoc des
+     * seuils pour pourquoi c'est une contrainte et pas un détail.
+     */
+    private static int cadenceTier(float speed) {
+        float rpm = Math.abs(speed);
+        if (rpm >= SPEED_OVERDRIVE) return 4;
+        if (rpm >= SPEED_FAST) return 3;
+        if (rpm >= SPEED_MEDIUM) return 2;
+        if (rpm >= 1f) return 1;
+        return 0;
+    }
+
+    /** Passé à {@link TurretCombat} : plus le réseau tourne vite, plus la tourelle tire vite. */
+    private int fireIntervalTicks() {
+        return FIRE_INTERVAL_BY_TIER[cadenceTier(getSpeed())];
+    }
+
+    @Override
     public Component powerLabel() {
-        return Component.translatable("gui.turnkey_factory.turret.rotation", Math.round(Math.abs(getSpeed())));
+        float speed = getSpeed();
+        return Component.translatable("gui.turnkey_factory.turret.rotation",
+                Math.round(Math.abs(speed)),
+                Component.translatable(CADENCE_KEYS[cadenceTier(speed)]));
     }
 
     /** 128 rpm = jauge pleine — vitesse "rapide" typique d'un réseau Create correctement démultiplié,
@@ -95,6 +174,32 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
      *  seulement que la vitesse est suffisante au moment du tir, rien à décrémenter. */
     private boolean tryConsumeRotation() {
         return isSpeedRequirementFulfilled();
+    }
+
+    /** Multiplie le coût de base pendant {@link #fireSpikeTicksLeft} ticks après un tir — cf. javadoc
+     *  de classe pour pourquoi ce n'est pas pris en compte tout seul par Create. */
+    @Override
+    public float calculateStressApplied() {
+        float base = super.calculateStressApplied();
+        if (fireSpikeTicksLeft > 0) {
+            lastStressApplied = base * FIRE_SPIKE_MULTIPLIER;
+            return lastStressApplied;
+        }
+        return base;
+    }
+
+    /** Passé comme {@code onFired} à {@link TurretCombat} : lance le pic et le fait prendre en compte
+     *  immédiatement (sans ça, le réseau garderait l'ancienne valeur en cache jusqu'au prochain
+     *  changement structurel, cf. javadoc de classe). */
+    private void onFired() {
+        fireSpikeTicksLeft = FIRE_SPIKE_TICKS;
+        pushStressUpdate();
+    }
+
+    private void pushStressUpdate() {
+        if (hasNetwork()) {
+            getOrCreateNetwork().updateStressFor(this, calculateStressApplied());
+        }
     }
 
     // ----- Persistance / sync (contrat SmartBlockEntity) -----

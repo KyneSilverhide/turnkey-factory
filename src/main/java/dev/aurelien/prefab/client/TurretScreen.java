@@ -22,10 +22,17 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
     private static final int Y_RANGE = 20;
     private static final int Y_TARGETS_LABEL = 46;
     private static final int Y_TARGETS = 56;
+    private static final int Y_CHECKLIST = 84;
     private static final int Y_STATUS = 108;
     private static final int Y_FUEL = 130;
     private static final int FUEL_BAR_H = 10;
     private static final int LINE_H = 10;
+    private static final int CHECKLIST_GAP = 6;
+
+    /** Mêmes teintes que le remplissage de la jauge d'énergie ({@link #drawPowerGauge}) — un seul
+     *  langage de couleur "prêt/manquant" dans tout l'écran. */
+    private static final int COLOR_OK = 0x4FA83D;
+    private static final int COLOR_MISSING = 0xC24B4B;
 
     private static final int LABEL_X = 12;
     private static final int MINUS_X = 72;
@@ -178,6 +185,7 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
         drawWrapped(g, status, lx, topPos + Y_STATUS, maxTextWidth, statusColor);
 
         if (be != null) {
+            drawChecklist(g, be, lx, topPos + Y_CHECKLIST);
             drawPowerGauge(g, be, lx, topPos + Y_FUEL, maxTextWidth);
         }
 
@@ -186,6 +194,22 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
         if (playerButton != null) playerButton.setMessage(targetLabel("player", player));
 
         renderTooltip(g, mouseX, mouseY);
+    }
+
+    /** Trois conditions requises pour tirer (cf. {@link ITurret#hasAmmo}/{@link ITurret#hasPower}/
+     *  {@link ITurret#active}), affichées côte à côte plutôt qu'un statut unique ambigu — un joueur
+     *  voit d'un coup d'œil laquelle bloque le tir au lieu de deviner. */
+    private void drawChecklist(GuiGraphics g, ITurret be, int x, int y) {
+        int cx = x;
+        cx = drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.redstone", be.active(), cx, y);
+        cx = drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.power", be.hasPower(), cx, y);
+        drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.ammo", be.hasAmmo(), cx, y);
+    }
+
+    private int drawChecklistItem(GuiGraphics g, String key, boolean ok, int x, int y) {
+        Component label = Component.translatable(key);
+        g.drawString(font, label, x, y, ok ? COLOR_OK : COLOR_MISSING, false);
+        return x + font.width(label) + CHECKLIST_GAP;
     }
 
     /** Jauge d'énergie (charge de charbon ou vitesse de rotation, cf. ITurret#powerFraction) — fond

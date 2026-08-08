@@ -30,6 +30,10 @@ public interface ITurret {
 
     /** Faux si la tourelle est active mais ne peut pas tirer faute d'énergie (couleur d'alerte côté GUI). */
     boolean hasPower();
+    /** Faux si aucune munition (iron/copper nugget) n'est actuellement disponible dans les inventaires
+     *  liés — cf. {@link TurretCombat}, identique pour les deux variantes. Utilisé par la checklist
+     *  {@code TurretScreen} (redstone / énergie / munitions). */
+    boolean hasAmmo();
     /** Ligne de statut énergie affichée dans {@code TurretScreen} (charge de charbon ou vitesse de rotation). */
     Component powerLabel();
     /** Niveau de la jauge d'énergie affichée dans {@code TurretScreen}, dans [0, 1] (charge/capacité
@@ -37,11 +41,14 @@ public interface ITurret {
     float powerFraction();
 
     /**
-     * Angle (degrés) de la pièce d'engrenage animée dans {@code TurretModel}/{@code TurretRenderer}.
+     * Angle de la pièce d'engrenage animée dans {@code TurretModel}/{@code TurretRenderer}, en
+     * <strong>radians</strong> (à appliquer tel quel sur {@code ModelPart#yRot}, sans conversion).
      * {@link Float#NaN} par défaut = pas d'engrenage à dessiner (tourelle charbon) ; seule
      * l'implémentation Create le surcharge avec un angle réel, délégué à
      * {@code KineticBlockEntityRenderer.getAngleForBe} pour rester en phase avec le réseau cinétique
-     * adjacent.
+     * adjacent — cette méthode fait elle-même la conversion degrés→radians en interne (vérifié par
+     * javap : {@code (t * speed * 3 / 10 + offset) % 360 / 180 * PI}), d'où l'unité inhabituelle
+     * pour une API d'angle.
      */
     default float cogAngle() {
         return Float.NaN;

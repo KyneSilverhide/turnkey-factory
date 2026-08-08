@@ -17,6 +17,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.HashMap;
@@ -89,13 +90,32 @@ public class TurretRenderer<T extends BlockEntity & ITurret> implements BlockEnt
 
         // Engrenage Create : NaN = rien à dessiner (tourelle charbon), cf. ITurret#cogAngle. Ne pivote
         // pas avec le canon (pièce indépendante du turntable), sa vitesse vient du réseau cinétique.
+        // L'angle est DÉJÀ en radians (Create le convertit lui-même, cf. ITurret#cogAngle) : le
+        // repasser par DEG_TO_RAD écrasait la rotation d'un facteur 57 — l'engrenage ne balayait plus
+        // que ~6° avant de revenir à zéro au lieu de faire un tour complet.
         float angle = be.cogAngle();
         if (!Float.isNaN(angle)) {
-            cog.yRot = angle * Mth.DEG_TO_RAD;
+            cog.yRot = angle;
             cog.render(poseStack, vertexConsumer, cannonLight, packedOverlay);
         }
 
         poseStack.popPose();
+    }
+
+    /**
+     * Boîte utilisée pour le culling du frustum. Le défaut NeoForge est exactement le cube du bloc
+     * (cf. {@code IBlockEntityRendererExtension#getRenderBoundingBox}), or tout ce que dessine ce
+     * renderer en déborde largement. Mesuré sur la géométrie de {@link TurretModel} : la bouche du
+     * canon est à 17px de l'axe de lacet, donc elle balaye jusqu'à 0.56 bloc au-delà de chaque face
+     * latérale, et monte à 1.40 bloc au-dessus du sommet du bloc au tangage maximum (+65°). Les
+     * dents de l'engrenage Create (2px) sont largement couvertes par là. Les valeurs ci-dessous
+     * gardent une marge sur ces deux maxima — sans quoi tout le modèle disparaît d'un coup dès que
+     * le cube du bloc quitte le champ alors que le canon est encore à l'écran (« pop » en bord
+     * d'écran). Une boîte trop large ne coûte qu'un culling un peu moins agressif.
+     */
+    @Override
+    public AABB getRenderBoundingBox(T be) {
+        return new AABB(be.getBlockPos()).inflate(1.0, 1.75, 1.0);
     }
 
     /** Avance la cible d'angle une fois par tick (pas par frame) : {@code partialTick} lisse le reste. */

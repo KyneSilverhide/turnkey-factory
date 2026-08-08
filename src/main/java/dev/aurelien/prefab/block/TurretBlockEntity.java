@@ -23,7 +23,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,15 +32,16 @@ import java.util.List;
  * cette classe n'apporte que la source d'énergie (charbon) et la persistance/sync vanilla.
  * <p>
  * Alimentation en charbon (famille de combustibles vanilla, pas seulement {@code Items.COAL}) tirée
- * des inventaires liés (même flood-fill {@link InventoryNetwork} que les autres machines, cf. le
- * lampadaire pour le pattern) — pas de slot dédié dans le menu. {@link #charge} est une jauge à
- * capacité fixe ({@link #MAX_SHOTS} tirs) : chaque tir en décompte 1 (jamais le scan à vide), et le
- * ravitaillement (cf. {@link #tryRefuel}) tourne indépendamment du tir, au rythme de
- * {@link #LINK_SCAN_INTERVAL} — il puise un item de combustible dans les inventaires liés et
- * l'ajoute à la jauge, mais seulement s'il y rentre entièrement ({@link #shotsOf}
- * ≤ place restante) : jamais de combustible à moitié consommé/gâché. À {@link #TICKS_PER_SHOT} = 200
- * (le coût par item d'un four vanilla), un charbon (1600 ticks) vaut 8 tirs — le même nombre d'objets
- * qu'il peut cuire.
+ * des inventaires liés — le flood-fill {@link InventoryNetwork} et son résultat ({@code linked})
+ * vivent dans {@link TurretCombat} (partagés avec les munitions, identiques pour les deux variantes
+ * de tourelle), réutilisés ici via {@link TurretCombat#linkedInventories()} plutôt que refaits en
+ * double. Pas de slot dédié dans le menu. {@link #charge} est une jauge à capacité fixe
+ * ({@link #MAX_SHOTS} tirs) : chaque tir en décompte 1 (jamais le scan à vide), et le ravitaillement
+ * (cf. {@link #tryRefuel}) tourne indépendamment du tir, au rythme de {@link #LINK_SCAN_INTERVAL} —
+ * il puise un item de combustible dans les inventaires liés et l'ajoute à la jauge, mais seulement
+ * s'il y rentre entièrement ({@link #shotsOf} ≤ place restante) : jamais de combustible à moitié
+ * consommé/gâché. À {@link #TICKS_PER_SHOT} = 200 (le coût par item d'un four vanilla), un charbon
+ * (1600 ticks) vaut 8 tirs — le même nombre d'objets qu'il peut cuire.
  */
 public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITurret {
     public static final int MIN_RANGE = TurretCombat.MIN_RANGE;
@@ -52,12 +52,14 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
     private static final int TICKS_PER_SHOT = 200;
     private static final int MAX_SHOTS = 512;
 
-    private final TurretCombat combat = new TurretCombat(this, this::tryConsumeShot, this::syncToClient);
+    /** Cadence fixe : le charbon fournit de l'énergie, pas de la vitesse — rien à faire varier ici,
+     *  contrairement à la variante Create dont la cadence suit le régime du réseau cinétique. */
+    private final TurretCombat combat = new TurretCombat(this, this::tryConsumeShot, this::syncToClient,
+            () -> {}, () -> TurretCombat.DEFAULT_FIRE_INTERVAL);
 
-    private int linkScanCooldown = 0;
+    private int refuelCooldown = 0;
     /** Jauge en nombre de tirs, jamais en ticks de combustion — cf. javadoc de classe. */
     private int charge = 0;
-    private final List<BlockPos> linked = new ArrayList<>();
 
     public TurretBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.TURRET.get(), pos, state);
@@ -75,6 +77,7 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
     @Override public void setRange(int r) { combat.setRange(r); }
     @Override public void setTargets(boolean hostile, boolean neutral, boolean player) { combat.setTargets(hostile, neutral, player); }
     @Override public boolean hasPower() { return charge > 0; }
+    @Override public boolean hasAmmo() { return combat.hasAmmo(); }
 
     @Override
     public Component powerLabel() {
@@ -95,14 +98,12 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
     public void serverTick() {
         if (!(level instanceof ServerLevel server)) return;
 
-        if (--linkScanCooldown <= 0) {
-            linkScanCooldown = LINK_SCAN_INTERVAL;
-            boolean dirty = InventoryNetwork.rescan(server, getBlockPos(), linked);
-            if (tryRefuel(server)) dirty = true;
-            if (dirty) syncToClient();
-        }
-
         combat.serverTick(server);
+
+        if (--refuelCooldown <= 0) {
+            refuelCooldown = LINK_SCAN_INTERVAL;
+            if (tryRefuel(server)) syncToClient();
+        }
     }
 
     /**
@@ -117,6 +118,7 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
         int headroom = MAX_SHOTS - charge;
         if (headroom <= 0) return false;
 
+        List<BlockPos> linked = combat.linkedInventories();
         Item fuel = InventoryNetwork.pickWeightedRandom(server, linked,
                 i -> AbstractFurnaceBlockEntity.isFuel(new ItemStack(i)), server.getRandom());
         if (fuel == null) return false;
@@ -170,7 +172,6 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
         super.saveAdditional(tag, registries);
         combat.save(tag);
         tag.putInt("charge", charge);
-        tag.putLongArray("linked", linked.stream().mapToLong(BlockPos::asLong).toArray());
     }
 
     @Override
@@ -178,11 +179,6 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
         super.loadAdditional(tag, registries);
         combat.load(tag);
         if (tag.contains("charge")) charge = Math.min(MAX_SHOTS, tag.getInt("charge"));
-
-        linked.clear();
-        for (long packed : tag.getLongArray("linked")) {
-            linked.add(BlockPos.of(packed));
-        }
 
         // transitoire (présent uniquement dans les paquets réseau)
         combat.loadTransient(tag);
