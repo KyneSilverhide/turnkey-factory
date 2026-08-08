@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "turnkey_factory:block/turret_machinegun" }
+  }
+}

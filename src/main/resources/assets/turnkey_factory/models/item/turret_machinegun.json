@@ -1,0 +1,196 @@
+{
+  "__comment": "Le modele de bloc est vide (l'arme est dessinee par TurretRenderer) : l'item a besoin de sa propre silhouette, plus compacte que le modele 3D qui deborde du cube. Toutes les faces piochent dans un aplat de turret_cannon.png via un uv explicite (deck 0-2, body 2-4, plate 4-6, dark 6-8, bore 8-10 sur la ligne v 8-10) : sans uv explicite, l'UV automatique decoupe un fragment arbitraire de la texture sur chaque face.",
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "turnkey_factory:block/turret_cannon",
+    "gun": "turnkey_factory:block/turret_cannon"
+  },
+  "elements": [
+    {
+      "name": "plateau tournant",
+      "from": [2, 0, 2],
+      "to": [14, 3, 14],
+      "faces": {
+        "north": {
+          "uv": [2, 8, 4, 10],
+          "texture": "#gun"
+        },
+        "south": {
+          "uv": [2, 8, 4, 10],
+          "texture": "#gun"
+        },
+        "west": {
+          "uv": [2, 8, 4, 10],
+          "texture": "#gun"
+        },
+        "east": {
+          "uv": [2, 8, 4, 10],
+          "texture": "#gun"
+        },
+        "up": {
+          "uv": [0, 8, 2, 10],
+          "texture": "#gun"
+        },
+        "down": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        }
+      }
+    },
+    {
+      "name": "joue gauche",
+      "from": [3, 3, 6],
+      "to": [5, 8, 12],
+      "faces": {
+        "north": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "south": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "west": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "east": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "up": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "down": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        }
+      }
+    },
+    {
+      "name": "joue droite",
+      "from": [11, 3, 6],
+      "to": [13, 8, 12],
+      "faces": {
+        "north": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "south": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "west": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "east": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "up": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "down": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        }
+      }
+    },
+    {
+      "name": "boitier de culasse",
+      "from": [5, 4, 8],
+      "to": [11, 9, 14],
+      "faces": {
+        "north": {
+          "uv": [2, 8, 4, 10],
+          "texture": "#gun"
+        },
+        "south": {
+          "uv": [2, 8, 4, 10],
+          "texture": "#gun"
+        },
+        "west": {
+          "uv": [2, 8, 4, 10],
+          "texture": "#gun"
+        },
+        "east": {
+          "uv": [2, 8, 4, 10],
+          "texture": "#gun"
+        },
+        "up": {
+          "uv": [0, 8, 2, 10],
+          "texture": "#gun"
+        },
+        "down": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        }
+      }
+    },
+    {
+      "name": "canon",
+      "from": [6.5, 5, -1],
+      "to": [9.5, 8, 9],
+      "faces": {
+        "north": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "south": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "west": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "east": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "up": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        },
+        "down": {
+          "uv": [4, 8, 6, 10],
+          "texture": "#gun"
+        }
+      }
+    },
+    {
+      "name": "frein de bouche",
+      "from": [6, 4.5, -2],
+      "to": [10, 8.5, 0],
+      "faces": {
+        "north": {
+          "uv": [8, 8, 10, 10],
+          "texture": "#gun"
+        },
+        "south": {
+          "uv": [6, 8, 8, 10],
+          "texture": "#gun"
+        },
+        "west": {
+          "uv": [6, 8, 8, 10],
+          "texture": "#gun"
+        },
+        "east": {
+          "uv": [6, 8, 8, 10],
+          "texture": "#gun"
+        },
+        "up": {
+          "uv": [6, 8, 8, 10],
+          "texture": "#gun"
+        },
+        "down": {
+          "uv": [6, 8, 8, 10],
+          "texture": "#gun"
+        }
+      }
+    }
+  ]
+}

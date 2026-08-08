@@ -5,6 +5,7 @@ import com.simibubi.create.content.kinetics.base.IRotate;
 import com.simibubi.create.content.kinetics.base.KineticBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.ICogWheel;
 import dev.aurelien.prefab.block.ITurret;
+import dev.aurelien.prefab.block.ITurretBase;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -29,11 +30,15 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * Variante Create de la tourelle (cf. {@code dev.aurelien.prefab.block.TurretBlock} pour
- * l'équivalent charbon) : n'existe que si Create est chargé, cf. {@link CreateKineticContent} pour
- * les règles d'enregistrement gardé qui rendent ça sûr. Axe fixe vertical, pas de propriété
- * {@code FACING}, d'où {@code KineticBlock} et non {@code DirectionalKineticBlock}. Deux points
- * d'entrée pour la rotation, comme la meule (millstone) :
+ * Socle de tourelle alimenté par un réseau cinétique Create (cf.
+ * {@code dev.aurelien.prefab.block.TurretBaseBlock} pour l'équivalent charbon) : n'existe que si
+ * Create est chargé, cf. {@link CreateKineticContent} pour les règles d'enregistrement gardé qui
+ * rendent ça sûr. Axe fixe vertical, pas de propriété {@code FACING}, d'où {@code KineticBlock} et
+ * non {@code DirectionalKineticBlock}.
+ * <p>
+ * <strong>C'est le socle, et non l'arme, qui est le membre du réseau cinétique</strong> : le
+ * raccordement se fait donc au niveau du sol, là où le joueur construit sa transmission. Deux points
+ * d'entrée, comme la meule (millstone) :
  * <ul>
  *   <li>un arbre vertical raccordé par le dessous ({@link #hasShaftTowards}, axe Y) ;</li>
  *   <li>{@code implements ICogWheel} sans surcharger {@code isLargeCog()} classe ce bloc comme
@@ -48,10 +53,10 @@ import java.util.List;
  * Ni l'un ni l'autre n'est visuellement évident depuis l'extérieur : {@link #appendHoverText} les
  * rend explicites plutôt que de compter sur l'intuition du joueur.
  */
-public class TurretCreateBlock extends KineticBlock implements EntityBlock, ICogWheel {
-    public static final MapCodec<TurretCreateBlock> CODEC = simpleCodec(TurretCreateBlock::new);
+public class TurretBaseCreateBlock extends KineticBlock implements EntityBlock, ICogWheel, ITurretBase {
+    public static final MapCodec<TurretBaseCreateBlock> CODEC = simpleCodec(TurretBaseCreateBlock::new);
 
-    public TurretCreateBlock(Properties props) {
+    public TurretBaseCreateBlock(Properties props) {
         super(props);
     }
 
@@ -77,13 +82,13 @@ public class TurretCreateBlock extends KineticBlock implements EntityBlock, ICog
 
     @Override
     public @Nullable BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new TurretCreateBlockEntity(pos, state);
+        return new TurretBaseCreateBlockEntity(pos, state);
     }
 
     @Override
     public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
         return (lvl, pos, st, be) -> {
-            if (be instanceof TurretCreateBlockEntity turret) {
+            if (be instanceof TurretBaseCreateBlockEntity turret) {
                 turret.tick();
             }
         };
@@ -92,13 +97,13 @@ public class TurretCreateBlock extends KineticBlock implements EntityBlock, ICog
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
-        tooltip.add(Component.translatable("block.turnkey_factory.turret_create.tooltip.shaft").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("block.turnkey_factory.turret_create.tooltip.checklist").withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.translatable("block.turnkey_factory.turret_base_create.tooltip.shaft").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("block.turnkey_factory.turret_base_create.tooltip.checklist").withStyle(ChatFormatting.DARK_GRAY));
     }
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof TurretCreateBlockEntity be) {
+        if (!level.isClientSide && level.getBlockEntity(pos) instanceof TurretBaseCreateBlockEntity be) {
             player.openMenu(be, buf -> buf.writeBlockPos(pos));
         }
         return InteractionResult.SUCCESS;
@@ -127,7 +132,7 @@ public class TurretCreateBlock extends KineticBlock implements EntityBlock, ICog
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
         if (!level.isClientSide && placer instanceof Player player
-                && level.getBlockEntity(pos) instanceof TurretCreateBlockEntity be) {
+                && level.getBlockEntity(pos) instanceof TurretBaseCreateBlockEntity be) {
             be.setOwner(player.getUUID());
         }
     }

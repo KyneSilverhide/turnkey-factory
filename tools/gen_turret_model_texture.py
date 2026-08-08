@@ -19,6 +19,7 @@ with size (w,h,d) is 2*(w+d) wide by (d+h) tall:
   sight       texOffs(22, 32)   1x2x1  ->  4x3  at (22,32)
   cog teeth   texOffs(26, 32)   shared flat swatch, 18x9 at (26,32) -- all 8 tooth boxes reuse it
   cog hub     texOffs(0, 48)   12x4x12 -> 48x16 at (0,48)
+  item swatches            row y=64, five 16x16 squares -- see paint_item_swatches
 
 The sheet is 128x128 rather than 64x64 purely for room: the machine-gun model has 13 footprints and
 hand-packing them into 64x64 leaves no slack for the detail passes (rivets, cooling slots). Verify
@@ -140,6 +141,57 @@ def paint_cog_top(canvas, u, v, size):
                 canvas[v + y][u + x] = "k"
 
 
+SWATCH_PX = 16
+SWATCH_ROW = 64
+SWATCH_ORDER = ("deck", "body", "plate", "dark", "bore")
+
+
+def paint_item_swatches(canvas):
+    """Five flat 16x16 swatches for the inventory icon (models/item/turret_machinegun.json).
+
+    The icon cannot reuse the 3D model as-is (it is far wider than one block: the barrel alone
+    reaches z=-9) nor the base block's textures (turret_top is a 16x16 plate with a red lens in the
+    middle -- every small face of the icon sampled a random crop of that lens through the automatic
+    UVs, which is exactly what it looked like). So the icon keeps its own compact silhouette and
+    picks its colours here, through explicit "uv" rectangles.
+
+    Each swatch is stretched over a whole face, so anything painted here must survive being squashed
+    to any aspect ratio: bands and centred marks, never a detail that only reads at 1:1.
+
+    UV arithmetic, since the sheet is 128px wide but block-model UVs are always in [0, 16]:
+    a swatch at column i covers px x=16*i..16*i+16, y=64..80, i.e. uv [2*i, 8, 2*i+2, 10].
+    Keep in sync with the "textures"/"uv" pairs in models/item/turret_machinegun.json.
+    """
+    x = {name: SWATCH_PX * i for i, name in enumerate(SWATCH_ORDER)}
+    y0, y1 = SWATCH_ROW, SWATCH_ROW + SWATCH_PX
+
+    # Deck (top faces): bevel highlight with brass rivets, same motif as the base plate's real top.
+    rect(canvas, x["deck"], y0, x["deck"] + SWATCH_PX, y1, "h")
+    paint_rivets(canvas, (x["deck"], y0, x["deck"] + SWATCH_PX, y1), "C", inset=3)
+
+    # Body (carriage and receiver flanks): gunmetal with the hazard band across the middle -- the
+    # same waistline the receiver wears on the 3D model, so the icon reads as the same machine.
+    rect(canvas, x["body"], y0, x["body"] + SWATCH_PX, y1, "m")
+    for col in range(SWATCH_PX):
+        for row in (7, 8):
+            canvas[y0 + row][x["body"] + col] = "y" if col % 3 else "b"
+
+    # Plate (cheeks and barrel): darker, with three lengthwise slots -- stretched along the barrel
+    # they read as the cooling jacket, which is the machine-gun cue at icon size.
+    rect(canvas, x["plate"], y0, x["plate"] + SWATCH_PX, y1, "x")
+    for col in (3, 8, 13):
+        for row in range(3, SWATCH_PX - 3):
+            canvas[y0 + row][x["plate"] + col] = "b"
+
+    # Dark: the muzzle brake, one step blacker than the barrel so the nose steps out of it.
+    rect(canvas, x["dark"], y0, x["dark"] + SWATCH_PX, y1, "b")
+
+    # Bore: muzzle face only. Centred, so it stays centred whatever the face's proportions.
+    rect(canvas, x["bore"], y0, x["bore"] + SWATCH_PX, y1, "b")
+    rect(canvas, x["bore"] + 5, y0 + 5, x["bore"] + 11, y1 - 5, "e")
+    rect(canvas, x["bore"] + 7, y0 + 7, x["bore"] + 9, y1 - 7, "L")
+
+
 def save(canvas, path, seed=0):
     img = Image.new("RGB", (TEX_W, TEX_H))
     for y in range(TEX_H):
@@ -237,6 +289,10 @@ def build():
         "top": "k", "bottom": "K", "east": "k", "west": "k", "front": "k", "back": "k",
     })
     paint_cog_top(c, 12, 48, 12)
+
+    # --- Inventory icon ---
+
+    paint_item_swatches(c)
 
     return c
 

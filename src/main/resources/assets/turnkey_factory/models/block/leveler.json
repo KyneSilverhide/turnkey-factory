@@ -1,8 +1,341 @@
 {
-  "parent": "minecraft:block/cube_bottom_top",
+  "__comment": "Etabli de chantier : pietement, plateau debordant et outils poses dessus. Le bloc n'occupe pas tout son cube, d'ou noOcclusion cote ModBlocks.",
+  "parent": "minecraft:block/block",
   "textures": {
+    "particle": "turnkey_factory:block/leveler_side",
+    "body": "turnkey_factory:block/leveler_side",
     "top": "turnkey_factory:block/leveler_top",
     "bottom": "turnkey_factory:block/leveler_bottom",
-    "side": "turnkey_factory:block/leveler_side"
-  }
+    "frame": "turnkey_factory:block/machine_frame",
+    "handle": "minecraft:block/stripped_spruce_log",
+    "steel": "minecraft:block/iron_block",
+    "spoil": "minecraft:block/dirt"
+  },
+  "elements": [
+    {
+      "name": "socle",
+      "from": [1, 0, 1],
+      "to": [15, 2, 15],
+      "faces": {
+        "north": {
+          "texture": "#body"
+        },
+        "south": {
+          "texture": "#body"
+        },
+        "west": {
+          "texture": "#body"
+        },
+        "east": {
+          "texture": "#body"
+        },
+        "up": {
+          "texture": "#body"
+        },
+        "down": {
+          "texture": "#bottom"
+        }
+      }
+    },
+    {
+      "name": "caisson",
+      "from": [3, 2, 3],
+      "to": [13, 9, 13],
+      "faces": {
+        "north": {
+          "texture": "#body"
+        },
+        "south": {
+          "texture": "#body"
+        },
+        "west": {
+          "texture": "#body"
+        },
+        "east": {
+          "texture": "#body"
+        },
+        "up": {
+          "texture": "#body"
+        },
+        "down": {
+          "texture": "#body"
+        }
+      }
+    },
+    {
+      "name": "pied",
+      "from": [1, 2, 1],
+      "to": [3, 10, 3],
+      "faces": {
+        "north": {
+          "texture": "#frame"
+        },
+        "south": {
+          "texture": "#frame"
+        },
+        "west": {
+          "texture": "#frame"
+        },
+        "east": {
+          "texture": "#frame"
+        },
+        "up": {
+          "texture": "#frame"
+        },
+        "down": {
+          "texture": "#frame"
+        }
+      }
+    },
+    {
+      "name": "pied",
+      "from": [13, 2, 1],
+      "to": [15, 10, 3],
+      "faces": {
+        "north": {
+          "texture": "#frame"
+        },
+        "south": {
+          "texture": "#frame"
+        },
+        "west": {
+          "texture": "#frame"
+        },
+        "east": {
+          "texture": "#frame"
+        },
+        "up": {
+          "texture": "#frame"
+        },
+        "down": {
+          "texture": "#frame"
+        }
+      }
+    },
+    {
+      "name": "pied",
+      "from": [1, 2, 13],
+      "to": [3, 10, 15],
+      "faces": {
+        "north": {
+          "texture": "#frame"
+        },
+        "south": {
+          "texture": "#frame"
+        },
+        "west": {
+          "texture": "#frame"
+        },
+        "east": {
+          "texture": "#frame"
+        },
+        "up": {
+          "texture": "#frame"
+        },
+        "down": {
+          "texture": "#frame"
+        }
+      }
+    },
+    {
+      "name": "pied",
+      "from": [13, 2, 13],
+      "to": [15, 10, 15],
+      "faces": {
+        "north": {
+          "texture": "#frame"
+        },
+        "south": {
+          "texture": "#frame"
+        },
+        "west": {
+          "texture": "#frame"
+        },
+        "east": {
+          "texture": "#frame"
+        },
+        "up": {
+          "texture": "#frame"
+        },
+        "down": {
+          "texture": "#frame"
+        }
+      }
+    },
+    {
+      "name": "plateau",
+      "from": [0, 10, 0],
+      "to": [16, 12, 16],
+      "faces": {
+        "north": {
+          "texture": "#body"
+        },
+        "south": {
+          "texture": "#body"
+        },
+        "west": {
+          "texture": "#body"
+        },
+        "east": {
+          "texture": "#body"
+        },
+        "up": {
+          "texture": "#top"
+        },
+        "down": {
+          "texture": "#frame"
+        }
+      }
+    },
+    {
+      "name": "tas de deblais",
+      "from": [1, 12, 5],
+      "to": [5, 14, 11],
+      "faces": {
+        "north": {
+          "texture": "#spoil"
+        },
+        "south": {
+          "texture": "#spoil"
+        },
+        "west": {
+          "texture": "#spoil"
+        },
+        "east": {
+          "texture": "#spoil"
+        },
+        "up": {
+          "texture": "#spoil"
+        },
+        "down": {
+          "texture": "#spoil"
+        }
+      }
+    },
+    {
+      "name": "tas de deblais (sommet)",
+      "from": [2, 14, 6],
+      "to": [4, 15, 10],
+      "faces": {
+        "north": {
+          "texture": "#spoil"
+        },
+        "south": {
+          "texture": "#spoil"
+        },
+        "west": {
+          "texture": "#spoil"
+        },
+        "east": {
+          "texture": "#spoil"
+        },
+        "up": {
+          "texture": "#spoil"
+        },
+        "down": {
+          "texture": "#spoil"
+        }
+      }
+    },
+    {
+      "name": "tas de deblais",
+      "from": [11, 12, 5],
+      "to": [15, 14, 11],
+      "faces": {
+        "north": {
+          "texture": "#spoil"
+        },
+        "south": {
+          "texture": "#spoil"
+        },
+        "west": {
+          "texture": "#spoil"
+        },
+        "east": {
+          "texture": "#spoil"
+        },
+        "up": {
+          "texture": "#spoil"
+        },
+        "down": {
+          "texture": "#spoil"
+        }
+      }
+    },
+    {
+      "name": "tas de deblais (sommet)",
+      "from": [12, 14, 6],
+      "to": [14, 15, 10],
+      "faces": {
+        "north": {
+          "texture": "#spoil"
+        },
+        "south": {
+          "texture": "#spoil"
+        },
+        "west": {
+          "texture": "#spoil"
+        },
+        "east": {
+          "texture": "#spoil"
+        },
+        "up": {
+          "texture": "#spoil"
+        },
+        "down": {
+          "texture": "#spoil"
+        }
+      }
+    },
+    {
+      "name": "manche de pelle",
+      "from": [7, 12, 2],
+      "to": [9, 13, 10],
+      "faces": {
+        "north": {
+          "texture": "#handle"
+        },
+        "south": {
+          "texture": "#handle"
+        },
+        "west": {
+          "texture": "#handle"
+        },
+        "east": {
+          "texture": "#handle"
+        },
+        "up": {
+          "texture": "#handle"
+        },
+        "down": {
+          "texture": "#handle"
+        }
+      }
+    },
+    {
+      "name": "fer de pelle",
+      "from": [6, 12, 10],
+      "to": [10, 12.75, 14],
+      "faces": {
+        "north": {
+          "texture": "#steel"
+        },
+        "south": {
+          "texture": "#steel"
+        },
+        "west": {
+          "texture": "#steel"
+        },
+        "east": {
+          "texture": "#steel"
+        },
+        "up": {
+          "texture": "#steel"
+        },
+        "down": {
+          "texture": "#steel"
+        }
+      }
+    }
+  ]
 }

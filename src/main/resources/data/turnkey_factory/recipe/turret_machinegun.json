@@ -2,17 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "pattern": [
-    "ISI",
-    "ICI",
-    "III"
+    "III",
+    "IRI"
   ],
   "key": {
     "I": { "item": "minecraft:iron_ingot" },
-    "S": { "item": "minecraft:spyglass" },
-    "C": { "item": "minecraft:comparator" }
+    "R": { "item": "minecraft:redstone" }
   },
   "result": {
-    "id": "turnkey_factory:turret",
+    "id": "turnkey_factory:turret_machinegun",
     "count": 1
   }
 }

@@ -14,7 +14,7 @@ import net.minecraft.world.item.ItemStack;
 /**
  * Aucun slot machine : munitions puisées dans les inventaires liés (cf. {@link ITurret}), aucun
  * slot dédié dans ce menu. Ne dépend que d'un {@link BlockPos} — sert aussi bien la tourelle
- * charbon ({@code TurretBlockEntity}) que l'implémentation Create (compat/create), d'où
+ * charbon ({@code TurretBaseBlockEntity}) que l'implémentation Create (compat/create), d'où
  * {@link #stillValid} qui vérifie la présence d'un {@link ITurret} plutôt qu'un bloc précis.
  */
 public class TurretMenu extends AbstractContainerMenu {

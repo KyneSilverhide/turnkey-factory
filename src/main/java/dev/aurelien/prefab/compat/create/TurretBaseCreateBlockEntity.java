@@ -23,9 +23,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * Variante Create de la tourelle : même ciblage/tir que {@code TurretBlockEntity} (délégué à
+ * Variante Create de la tourelle : même ciblage/tir que {@code TurretBaseBlockEntity} (délégué à
  * {@link TurretCombat}, cf. sa javadoc), mais alimentée par un vrai réseau cinétique — membre à
- * part entière (arbre attaché depuis le dessous, cf. {@link TurretCreateBlock}), coût en stress
+ * part entière (arbre attaché depuis le dessous, cf. {@link TurretBaseCreateBlock}), coût en stress
  * enregistré une fois pour toutes dans {@link CreateKineticContent}. Pas de "consommation" par tir
  * comme le charbon : {@link #tryConsumeRotation} ne fait que vérifier que le réseau tourne assez
  * vite au moment de tirer ; le drain de stress lui-même est continu, géré par Create tant que le
@@ -47,7 +47,7 @@ import java.util.List;
  * {@code GeneratingKineticBlockEntity} quand sa vitesse générée change (vérifié par javap, pas de
  * doc officielle pour ce mécanisme).
  */
-public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuProvider, ITurret {
+public class TurretBaseCreateBlockEntity extends KineticBlockEntity implements MenuProvider, ITurret {
     /** Multiplicateur de stress appliqué brièvement à chaque tir, par-dessus le coût de base constant. */
     private static final float FIRE_SPIKE_MULTIPLIER = 3.0f;
     /** Durée du pic en ticks (10 = 0.5s) — nettement plus court que l'intervalle entre deux tirs. */
@@ -93,11 +93,11 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
     private final TurretCombat combat = new TurretCombat(this, this::tryConsumeRotation, this::notifyUpdate,
             this::onFired, this::fireIntervalTicks);
     private int fireSpikeTicksLeft = 0;
-    /** Cf. {@link dev.aurelien.prefab.block.TurretBlockEntity#pendingRedstoneSync} pour la raison d'être. */
+    /** Cf. {@link dev.aurelien.prefab.block.TurretBaseBlockEntity#pendingRedstoneSync} pour la raison d'être. */
     private boolean pendingRedstoneSync = true;
 
-    public TurretCreateBlockEntity(BlockPos pos, BlockState state) {
-        super(CreateKineticContent.TURRET_CREATE_BE.get(), pos, state);
+    public TurretBaseCreateBlockEntity(BlockPos pos, BlockState state) {
+        super(CreateKineticContent.TURRET_BASE_CREATE_BE.get(), pos, state);
     }
 
     @Override
@@ -105,7 +105,7 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
         // Aucun comportement Create déclaratif nécessaire : le ciblage/tir vit dans TurretCombat.
     }
 
-    /** Appelé par le ticker du bloc, côté client et serveur (cf. {@link TurretCreateBlock#getTicker}). */
+    /** Appelé par le ticker du bloc, côté client et serveur (cf. {@link TurretBaseCreateBlock#getTicker}). */
     public void tick() {
         super.tick();
         if (fireSpikeTicksLeft > 0 && --fireSpikeTicksLeft == 0) {
@@ -144,7 +144,7 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
         return combat.hasAmmo();
     }
 
-    /** Enregistré une seule fois par {@link TurretCreateBlock#setPlacedBy}. */
+    /** Enregistré une seule fois par {@link TurretBaseCreateBlock#setPlacedBy}. */
     public void setOwner(java.util.UUID id) { combat.setOwner(id); }
 
     /**
@@ -253,7 +253,7 @@ public class TurretCreateBlockEntity extends KineticBlockEntity implements MenuP
 
     @Override
     public Component getDisplayName() {
-        return Component.translatable("block.turnkey_factory.turret_create");
+        return Component.translatable("block.turnkey_factory.turret_base_create");
     }
 
     @Nullable

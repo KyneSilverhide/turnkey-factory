@@ -5,7 +5,7 @@ import dev.aurelien.prefab.block.ControllerBlockEntity;
 import dev.aurelien.prefab.block.LamplighterBlockEntity;
 import dev.aurelien.prefab.block.LevelerBlockEntity;
 import dev.aurelien.prefab.block.TexturizerBlockEntity;
-import dev.aurelien.prefab.block.TurretBlockEntity;
+import dev.aurelien.prefab.block.TurretBaseBlockEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -32,7 +32,7 @@ public class ModBlockEntities {
             BLOCK_ENTITIES.register("lamplighter", () ->
                     BlockEntityType.Builder.of(LamplighterBlockEntity::new, ModBlocks.LAMPLIGHTER.get()).build(null));
 
-    public static final Supplier<BlockEntityType<TurretBlockEntity>> TURRET =
-            BLOCK_ENTITIES.register("turret", () ->
-                    BlockEntityType.Builder.of(TurretBlockEntity::new, ModBlocks.TURRET.get()).build(null));
+    public static final Supplier<BlockEntityType<TurretBaseBlockEntity>> TURRET_BASE =
+            BLOCK_ENTITIES.register("turret_base", () ->
+                    BlockEntityType.Builder.of(TurretBaseBlockEntity::new, ModBlocks.TURRET_BASE.get()).build(null));
 }

@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ITurret;
+import dev.aurelien.prefab.block.TurretCombat;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -24,13 +25,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Dessine le canon mobile par-dessus le socle statique (modèle de bloc JSON). Ne synchronise
+ * Dessine l'arme (affût mobile + canon) par-dessus le socle, dans le bloc du dessus. Le renderer est
+ * porté par le BlockEntity du <strong>socle</strong> et non par l'arme : c'est le socle qui détient
+ * tout l'état (cible verrouillée, régime du réseau), et l'arme est un bloc sans BlockEntity. Rien
+ * n'est dessiné tant qu'aucune arme n'est montée ({@link ITurret#hasWeapon()}). Ne synchronise
  * aucun angle depuis le serveur : {@link ITurret#currentTargetId()} est la seule donnée réseau (cf.
  * sa javadoc), la visée (lacet/tangage) est entièrement recalculée ici à partir de la position live
  * de l'entité ciblée, lissée d'un tick à l'autre pour un mouvement fluide.
  * <p>
- * Générique sur {@code T extends BlockEntity & ITurret} : un seul renderer sert la tourelle charbon
- * et l'implémentation Create (compat/create) — enregistré deux fois, une fois par
+ * Générique sur {@code T extends BlockEntity & ITurret} : un seul renderer sert le socle à charbon
+ * et le socle cinétique (compat/create) — enregistré deux fois, une fois par
  * {@code BlockEntityType}. Le corps de {@link #render} ne référence jamais directement de type
  * Create : la pièce d'engrenage animée passe par {@link ITurret#cogAngle()}, une méthode
  * d'interface ordinaire, précisément pour que cette classe (toujours chargée, y compris sans
@@ -68,7 +72,7 @@ public class TurretRenderer<T extends BlockEntity & ITurret> implements BlockEnt
     public void render(T be, float partialTick, PoseStack poseStack, MultiBufferSource buffers,
                         int packedLight, int packedOverlay) {
         Level level = be.getLevel();
-        if (level == null) return;
+        if (level == null || !be.hasWeapon()) return;
 
         AimState state = aimStates.computeIfAbsent(be.getBlockPos(), p -> new AimState());
         advanceAim(be, level, state);
@@ -80,9 +84,9 @@ public class TurretRenderer<T extends BlockEntity & ITurret> implements BlockEnt
         turntable.yRot = yaw * Mth.DEG_TO_RAD;
         barrel.xRot = pitch * Mth.DEG_TO_RAD;
 
-        // packedLight est échantillonné à la position du bloc lui-même (cube opaque plein, donc
-        // lumière ~0 dedans) : le canon dépasse au-dessus, on réchantillonne au bloc du dessus
-        // pour ne pas rendre le modèle tout noir.
+        // packedLight est échantillonné à la position du socle (cube opaque plein, donc lumière ~0
+        // dedans) : l'arme est dessinée au-dessus, on réchantillonne au bloc du dessus — celui qu'elle
+        // occupe réellement — pour ne pas rendre le modèle tout noir.
         int cannonLight = LevelRenderer.getLightColor(level, be.getBlockPos().above());
 
         VertexConsumer vertexConsumer = buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
@@ -105,13 +109,14 @@ public class TurretRenderer<T extends BlockEntity & ITurret> implements BlockEnt
     /**
      * Boîte utilisée pour le culling du frustum. Le défaut NeoForge est exactement le cube du bloc
      * (cf. {@code IBlockEntityRendererExtension#getRenderBoundingBox}), or tout ce que dessine ce
-     * renderer en déborde largement. Mesuré sur la géométrie de {@link TurretModel} : la bouche du
-     * canon est à 17px de l'axe de lacet, donc elle balaye jusqu'à 0.56 bloc au-delà de chaque face
-     * latérale, et monte à 1.40 bloc au-dessus du sommet du bloc au tangage maximum (+65°). Les
-     * dents de l'engrenage Create (2px) sont largement couvertes par là. Les valeurs ci-dessous
-     * gardent une marge sur ces deux maxima — sans quoi tout le modèle disparaît d'un coup dès que
-     * le cube du bloc quitte le champ alors que le canon est encore à l'écran (« pop » en bord
-     * d'écran). Une boîte trop large ne coûte qu'un culling un peu moins agressif.
+     * renderer en déborde largement, et dans les trois directions. Mesuré sur la géométrie de
+     * {@link TurretModel} : la bouche du canon est à 17px de l'axe de lacet, donc elle balaye
+     * jusqu'à 0.56 bloc au-delà de chaque face latérale du socle, et monte à 1.40 bloc au-dessus du
+     * sommet du socle au tangage maximum (+65°). Les dents de l'engrenage Create (2px) sont
+     * largement couvertes par là. Les valeurs ci-dessous gardent une marge sur ces deux maxima —
+     * sans quoi tout le modèle disparaît d'un coup dès que le cube du socle quitte le champ alors
+     * que le canon est encore à l'écran (« pop » en bord d'écran). Une boîte trop large ne coûte
+     * qu'un culling un peu moins agressif.
      */
     @Override
     public AABB getRenderBoundingBox(T be) {
@@ -131,7 +136,10 @@ public class TurretRenderer<T extends BlockEntity & ITurret> implements BlockEnt
 
         Entity target = level.getEntity(be.currentTargetId());
         if (target instanceof LivingEntity living && living.isAlive()) {
-            Vec3 origin = Vec3.atCenterOf(be.getBlockPos()).add(0, 0.9, 0);
+            // Même origine que le tir côté serveur (cf. TurretCombat#muzzlePos), socle compris : le
+            // canon doit pointer là où part réellement le tracer, sinon la visée dessinée ment sur la
+            // ligne de vue.
+            Vec3 origin = Vec3.atBottomCenterOf(be.getBlockPos()).add(0, TurretCombat.MUZZLE_HEIGHT_PX / 16.0, 0);
             Vec3 to = living.getEyePosition(1.0f).subtract(origin);
             double horiz = Math.sqrt(to.x * to.x + to.z * to.z);
             // Convention ModelPart (cf. ModelPart#translateAndRotate -> Quaternionf#rotationZYX) :

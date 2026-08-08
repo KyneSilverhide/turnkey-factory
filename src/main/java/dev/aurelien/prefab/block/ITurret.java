@@ -2,19 +2,30 @@ package dev.aurelien.prefab.block;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Façade commune aux deux implémentations de tourelle : {@link TurretBlockEntity} (charbon,
+ * Façade commune aux deux <em>socles</em> de tourelle : {@link TurretBaseBlockEntity} (charbon,
  * toujours disponible) et l'implémentation Create (compat/create, réseau cinétique réel — n'existe
- * que si Create est chargé). Java n'autorisant pas l'héritage multiple, ces deux classes ne
- * partagent aucune classe mère commune (l'une étend {@code BlockEntity}, l'autre
- * {@code KineticBlockEntity}) — le ciblage/tir partagé vit dans {@link TurretCombat}, composé par
- * les deux, et cette interface est ce que {@code TurretMenu}, {@code TurretScreen} et
- * {@code TurretRenderer} manipulent pour rester agnostiques de la source d'énergie.
+ * que si Create est chargé). Le socle est la machine : énergie, signal redstone, inventaires liés,
+ * réglages et interface. L'arme posée dessus ({@link TurretWeaponBlock}) n'est qu'un module sans
+ * état, et c'est le socle qui la dessine.
+ * <p>
+ * Java n'autorisant pas l'héritage multiple, ces deux classes ne partagent aucune classe mère
+ * commune (l'une étend {@code BlockEntity}, l'autre {@code KineticBlockEntity}) — le ciblage/tir
+ * partagé vit dans {@link TurretCombat}, composé par les deux, et cette interface est ce que
+ * {@code TurretMenu}, {@code TurretScreen} et {@code TurretRenderer} manipulent pour rester
+ * agnostiques de la source d'énergie.
  */
 public interface ITurret {
     BlockPos getBlockPos();
+
+    /** Contrat de {@code BlockEntity}, redéclaré ici pour {@link #hasWeapon} — les deux
+     *  implémentations en sont, mais l'interface ne peut pas l'exiger autrement. */
+    @Nullable
+    Level getLevel();
 
     int range();
     boolean active();
@@ -55,13 +66,34 @@ public interface ITurret {
     }
 
     /**
-     * Aligne l'état actif de la tourelle sur le signal redstone reçu — plus de bouton Marche/Arrêt
-     * dans le GUI, la tourelle s'active tant qu'elle reçoit un signal d'un voisin. Appelé depuis
-     * {@code neighborChanged}/{@code onPlace} des deux blocs (charbon et Create).
+     * Arme actuellement montée sur le socle en {@code basePos}, ou {@code null} s'il est nu. Lu
+     * directement dans le monde plutôt que persisté/synchronisé : l'arme est un bloc ordinaire, donc
+     * son {@code BlockState} est déjà répliqué au client — la réponse est la même des deux côtés,
+     * sans un octet de NBT.
      */
-    static void syncRedstoneState(Level level, BlockPos pos) {
-        if (level.getBlockEntity(pos) instanceof ITurret turret) {
-            turret.setActive(level.hasNeighborSignal(pos));
+    @Nullable
+    static TurretWeaponBlock weaponOn(BlockGetter level, BlockPos basePos) {
+        return level.getBlockState(basePos.above()).getBlock() instanceof TurretWeaponBlock weapon ? weapon : null;
+    }
+
+    /** Cf. {@link #weaponOn} — un socle sans arme ne tire pas (et n'a rien à dessiner). */
+    default boolean hasWeapon() {
+        Level level = getLevel();
+        return level != null && weaponOn(level, getBlockPos()) != null;
+    }
+
+    /**
+     * Aligne l'état actif de la tourelle sur le signal redstone reçu par le <em>socle</em> — plus de
+     * bouton Marche/Arrêt dans le GUI, la tourelle s'active tant qu'elle reçoit un signal d'un
+     * voisin. Appelé depuis {@code neighborChanged}/{@code onPlace} des deux socles (charbon et
+     * Create).
+     * <p>
+     * C'est bien la position du socle qui compte, jamais celle de l'arme : le socle est au sol, et
+     * c'est contre lui qu'on pose une plaque de pression ou qu'on tire une ligne de poudre.
+     */
+    static void syncRedstoneState(Level level, BlockPos basePos) {
+        if (level.getBlockEntity(basePos) instanceof ITurret turret) {
+            turret.setActive(level.hasNeighborSignal(basePos));
         }
     }
 }

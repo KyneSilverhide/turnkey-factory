@@ -16,7 +16,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.function.Supplier;
 
 /**
- * Bloc/item/BlockEntityType de la tourelle Create — n'existe que si Create est chargé
+ * Bloc/item/BlockEntityType du socle de tourelle cinétique — n'existe que si Create est chargé
  * ({@link dev.aurelien.prefab.compat.CreateCompat#isLoaded()}). Toute cette classe (y compris ses
  * champs statiques {@code DeferredRegister}) ne doit être touchée que depuis un appel gardé par
  * cette vérification : {@link #register} et {@link #onCommonSetup} sont les deux seuls points
@@ -33,27 +33,27 @@ public final class CreateKineticContent {
             DeferredRegister.create(BuiltInRegistries.BLOCK_ENTITY_TYPE, PrefabMod.MODID);
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(PrefabMod.MODID);
 
-    public static final DeferredBlock<TurretCreateBlock> TURRET_CREATE = BLOCKS.registerBlock(
-            "turret_create",
-            TurretCreateBlock::new,
+    public static final DeferredBlock<TurretBaseCreateBlock> TURRET_BASE_CREATE = BLOCKS.registerBlock(
+            "turret_base_create",
+            TurretBaseCreateBlock::new,
             BlockBehaviour.Properties.of()
                     .mapColor(MapColor.METAL)
                     .strength(3.5F)
                     .requiresCorrectToolForDrops()
     );
 
-    public static final Supplier<BlockEntityType<TurretCreateBlockEntity>> TURRET_CREATE_BE = BLOCK_ENTITIES.register(
-            "turret_create",
-            () -> BlockEntityType.Builder.of(TurretCreateBlockEntity::new, TURRET_CREATE.get()).build(null)
+    public static final Supplier<BlockEntityType<TurretBaseCreateBlockEntity>> TURRET_BASE_CREATE_BE = BLOCK_ENTITIES.register(
+            "turret_base_create",
+            () -> BlockEntityType.Builder.of(TurretBaseCreateBlockEntity::new, TURRET_BASE_CREATE.get()).build(null)
     );
 
-    public static final DeferredItem<BlockItem> TURRET_CREATE_ITEM =
-            ITEMS.registerSimpleBlockItem("turret_create", TURRET_CREATE);
+    public static final DeferredItem<BlockItem> TURRET_BASE_CREATE_ITEM =
+            ITEMS.registerSimpleBlockItem("turret_base_create", TURRET_BASE_CREATE);
 
     /**
      * Coût en stress (SU) de référence, enregistré au catalogue Create (lunettes d'ingénieur…) — même
      * ordre de grandeur qu'une petite machine Create. En jeu, le coût réel appliqué par
-     * {@link TurretCreateBlockEntity#calculateStressApplied} varie avec la portée configurée ; cette
+     * {@link TurretBaseCreateBlockEntity#calculateStressApplied} varie avec la portée configurée ; cette
      * valeur catalogue reste exacte pour la portée par défaut ({@link TurretCombat#DEFAULT_RANGE}),
      * d'où le partage de cette constante plutôt que deux nombres qui pourraient diverger.
      */
@@ -66,6 +66,6 @@ public final class CreateKineticContent {
     }
 
     public static void onCommonSetup(FMLCommonSetupEvent event) {
-        event.enqueueWork(() -> BlockStressValues.IMPACTS.register(TURRET_CREATE.get(), () -> STRESS_IMPACT));
+        event.enqueueWork(() -> BlockStressValues.IMPACTS.register(TURRET_BASE_CREATE.get(), () -> STRESS_IMPACT));
     }
 }

@@ -21,6 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -35,7 +36,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
 
 /**
- * Ciblage et tir de la tourelle, extrait de {@link TurretBlockEntity} pour être partagé avec
+ * Ciblage et tir de la tourelle, extrait de {@link TurretBaseBlockEntity} pour être partagé avec
  * l'implémentation Create (compat/create) — les deux BlockEntity ne peuvent pas partager de classe
  * mère (l'une étend {@code BlockEntity}, l'autre {@code KineticBlockEntity}), donc composition
  * plutôt qu'héritage. Le coût en énergie (charbon consommé, ou vitesse de rotation suffisante) est
@@ -61,11 +62,13 @@ public class TurretCombat {
     public static final int DEFAULT_RANGE = 12;
 
     /**
-     * Hauteur de l'axe du canon au-dessus du bas du bloc, en pixels (1/16 de bloc). Partagée avec
-     * {@code TurretModel} (côté client), qui en dérive son pivot de tangage. La constante vit ici,
-     * du côté commun, et pas dans le modèle : la dépendance ne peut aller que client → commun, une
-     * classe serveur qui référencerait {@code TurretModel} (client-only) casserait sur un serveur
-     * dédié.
+     * Hauteur de l'axe du canon au-dessus du bas du <em>socle</em>, en pixels (1/16 de bloc) : plus
+     * de 16, donc, puisque l'arme occupe le bloc au-dessus du socle. Toutes les positions de cette
+     * classe sont celles du socle (c'est lui qui porte le BlockEntity), y compris l'origine des
+     * tirs. Partagée avec {@code TurretModel} (côté client), qui en dérive son pivot de tangage. La
+     * constante vit ici, du côté commun, et pas dans le modèle : la dépendance ne peut aller que
+     * client → commun, une classe serveur qui référencerait {@code TurretModel} (client-only)
+     * casserait sur un serveur dédié.
      */
     public static final float MUZZLE_HEIGHT_PX = 23f;
 
@@ -75,11 +78,6 @@ public class TurretCombat {
 
     private static final int SCAN_INTERVAL = 10;
     private static final int LINK_SCAN_INTERVAL = 20;
-    // Réduit de 4.0 à 3.0 : dégâts de type "magic" (bypasses_armor vanilla), donc déjà non réduits par
-    // l'armure de la cible, cumulés à un tir hitscan (ni esquive, ni parade) — 4.0 rendait une tourelle
-    // à 6 lingots de fer disproportionnée par rapport à son coût de craft. Cf. aussi le coût croissant
-    // avec la portée (chargeCost/stress) qui vient maintenant peser sur la même balance.
-    private static final float DAMAGE = 3.0f;
     private static final int TRACER_STEPS = 12;
 
     /**
@@ -120,7 +118,7 @@ public class TurretCombat {
     private int scanCooldown = 0;
     private int fireCooldown = 0;
     private int linkScanCooldown = 0;
-    /** -1 = aucune cible. Seule donnée de visée envoyée au client (cf. javadoc de {@link TurretBlockEntity}). */
+    /** -1 = aucune cible. Seule donnée de visée envoyée au client (cf. javadoc de {@link TurretBaseBlockEntity}). */
     private int currentTargetId = -1;
     /** Recalculé à chaque rescan + juste après extraction (cf. {@link #updateHasAmmo}) — pas seulement
      *  au rythme de {@link #LINK_SCAN_INTERVAL}, pour refléter tout de suite le dernier nugget consommé. */
@@ -175,7 +173,7 @@ public class TurretCombat {
 
     public void serverTick(ServerLevel server) {
         // Le scan des inventaires liés tourne même à l'arrêt (redstone coupée) : les munitions sont
-        // prêtes dès la réactivation, même logique que le ravitaillement en charbon côté TurretBlockEntity.
+        // prêtes dès la réactivation, même logique que le ravitaillement en charbon côté TurretBaseBlockEntity.
         if (--linkScanCooldown <= 0) {
             linkScanCooldown = LINK_SCAN_INTERVAL;
             boolean changed = InventoryNetwork.rescan(server, owner.getBlockPos(), linked);
@@ -183,12 +181,13 @@ public class TurretCombat {
             if (changed) syncToClient.run();
         }
 
-        // Sans inventaire lié, la tourelle n'a de toute façon ni munitions ni ravitaillement possible :
-        // on évite de scanner/verrouiller des cibles pour rien (même esprit que le refus de démarrage
-        // des 3 autres machines à inventaire vide, cf. leur setActive) — sans toucher à `active`, qui
-        // doit rester le reflet fidèle du signal redstone (cf. ITurret#syncRedstoneState), pas une
-        // condition composite qui rendrait la case "redstone" de la checklist trompeuse.
-        if (!active || linked.isEmpty()) {
+        // Sans inventaire lié, la tourelle n'a de toute façon ni munitions ni ravitaillement possible ;
+        // sans arme montée, elle n'a rien pour tirer. Dans les deux cas on évite de scanner/verrouiller
+        // des cibles pour rien (même esprit que le refus de démarrage des 3 autres machines à inventaire
+        // vide, cf. leur setActive) — sans toucher à `active`, qui doit rester le reflet fidèle du signal
+        // redstone (cf. ITurret#syncRedstoneState), pas une condition composite qui rendrait la case
+        // "redstone" de la checklist trompeuse.
+        if (!active || linked.isEmpty() || ITurret.weaponOn(server, owner.getBlockPos()) == null) {
             return;
         }
 
@@ -206,7 +205,7 @@ public class TurretCombat {
         }
     }
 
-    /** Réutilisé par {@link TurretBlockEntity} pour son ravitaillement en charbon, afin de partager
+    /** Réutilisé par {@link TurretBaseBlockEntity} pour son ravitaillement en charbon, afin de partager
      *  le même flood-fill plutôt que d'en refaire un second en parallèle. */
     public List<BlockPos> linkedInventories() {
         return Collections.unmodifiableList(linked);
@@ -272,14 +271,38 @@ public class TurretCombat {
         return false;
     }
 
+    /**
+     * Tracé <strong>de la cible vers la bouche</strong>, et non l'inverse comme on l'écrirait
+     * spontanément : l'origine des tirs est à l'intérieur du volume de collision de l'arme (l'axe du
+     * canon passe entre les joues de l'affût, cf. {@code TurretWeaponBlock}), et
+     * {@code VoxelShape#clip} signale un impact immédiat dès que le point de départ est dans une
+     * forme — partir de la bouche revenait donc à se déclarer bloqué par sa propre arme à chaque
+     * tick, et plus aucune cible n'était jamais verrouillée.
+     * <p>
+     * Dans ce sens-là, les seuls blocs de la tourelle que le rayon peut rencontrer sont ceux
+     * d'arrivée : on les accepte explicitement, tout autre impact est un vrai obstacle — le parcours
+     * s'arrêtant au premier impact, un mur intercalé est bien détecté avant eux. Le socle compte
+     * autant que l'arme dans cette liste, ce n'est pas de la prudence gratuite : une cible assez basse
+     * fait arriver le rayon par le dessous, donc par le socle, et le retirer de la liste couperait
+     * silencieusement tous les tirs vers le bas.
+     */
     private boolean hasLineOfSight(ServerLevel server, Vec3 origin, LivingEntity target) {
-        ClipContext ctx = new ClipContext(origin, target.getEyePosition(), ClipContext.Block.COLLIDER,
+        ClipContext ctx = new ClipContext(target.getEyePosition(), origin, ClipContext.Block.COLLIDER,
                 ClipContext.Fluid.NONE, CollisionContext.empty());
-        return server.clip(ctx).getType() == HitResult.Type.MISS;
+        BlockHitResult hit = server.clip(ctx);
+        if (hit.getType() == HitResult.Type.MISS) return true;
+
+        BlockPos base = owner.getBlockPos();
+        return hit.getBlockPos().equals(base) || hit.getBlockPos().equals(base.above());
     }
 
     private void tryFire(ServerLevel server) {
         if (currentTargetId < 0) return;
+        // Relu à chaque tir plutôt que mis en cache : le joueur peut remplacer l'arme à tout moment,
+        // et c'est elle qui fixe les dégâts (cf. TurretWeaponBlock#baseDamage).
+        TurretWeaponBlock weapon = ITurret.weaponOn(server, owner.getBlockPos());
+        if (weapon == null) return;
+
         Entity entity = server.getEntity(currentTargetId);
         if (!(entity instanceof LivingEntity target) || !target.isAlive()) {
             setCurrentTarget(null);
@@ -308,7 +331,7 @@ public class TurretCombat {
 
         InventoryNetwork.extract(server, linked, ammo, 1);
         if (updateHasAmmo(server)) syncToClient.run();
-        target.hurt(server.damageSources().magic(), damageFor(ammo));
+        target.hurt(server.damageSources().magic(), damageFor(ammo, weapon.baseDamage()));
         playFireSound(server);
         spawnTracer(server, origin, targetPos);
         onFired.run();
@@ -319,11 +342,12 @@ public class TurretCombat {
         return stack.is(Tags.Items.NUGGETS_IRON) || stack.is(NUGGETS_COPPER);
     }
 
-    /** Pépite de fer = dégâts de base ; pépite de cuivre = moitié moins (cf. javadoc de classe).
-     *  Le fer est testé en premier plutôt que le cuivre : un item exotique déclaré dans les deux tags
-     *  garde alors les dégâts pleins, au lieu que le résultat dépende de l'ordre des branches. */
-    private static float damageFor(Item ammo) {
-        return new ItemStack(ammo).is(Tags.Items.NUGGETS_IRON) ? DAMAGE : DAMAGE * 0.5f;
+    /** Pépite de fer = dégâts de base de l'arme montée ; pépite de cuivre = moitié moins (cf. javadoc
+     *  de classe). Le fer est testé en premier plutôt que le cuivre : un item exotique déclaré dans
+     *  les deux tags garde alors les dégâts pleins, au lieu que le résultat dépende de l'ordre des
+     *  branches. */
+    private static float damageFor(Item ammo, float base) {
+        return new ItemStack(ammo).is(Tags.Items.NUGGETS_IRON) ? base : base * 0.5f;
     }
 
     /**
@@ -352,7 +376,7 @@ public class TurretCombat {
     /**
      * Origine des tirs : à la fois le départ du tracer de particules ET l'origine du test de ligne
      * de vue, donc pas seulement cosmétique — trop bas, la tourelle se croit bloquée par son propre
-     * bloc ou par le sol tout autour. Alignée sur l'axe du canon du modèle via
+     * socle ou par le sol tout autour. Alignée sur l'axe du canon du modèle via
      * {@link #MUZZLE_HEIGHT_PX} ; horizontalement on reste au centre du bloc (le canon pivote, il
      * n'y a pas de « bonne » position fixe, et le centre est le seul choix qui ne dérive pas selon
      * le lacet).

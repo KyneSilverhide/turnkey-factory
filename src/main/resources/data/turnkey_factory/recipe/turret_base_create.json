@@ -5,18 +5,19 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "pattern": [
-    "ISI",
+    "IVI",
     "GCG",
-    "III"
+    "PPP"
   ],
   "key": {
     "I": { "item": "minecraft:iron_ingot" },
-    "S": { "item": "minecraft:spyglass" },
+    "V": { "item": "minecraft:spyglass" },
     "C": { "item": "minecraft:comparator" },
-    "G": { "item": "create:precision_mechanism" }
+    "G": { "item": "create:precision_mechanism" },
+    "P": { "item": "minecraft:smooth_stone" }
   },
   "result": {
-    "id": "turnkey_factory:turret_create",
+    "id": "turnkey_factory:turret_base_create",
     "count": 1
   }
 }

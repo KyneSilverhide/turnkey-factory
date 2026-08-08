@@ -169,6 +169,9 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
         if (be == null) {
             status = Component.empty();
             statusColor = 0xB0B0B0;
+        } else if (!be.hasWeapon()) {
+            status = Component.translatable("gui.turnkey_factory.turret.status.no_weapon");
+            statusColor = 0xB0B0B0;
         } else if (!be.active()) {
             status = Component.translatable("gui.turnkey_factory.turret.status.inactive");
             statusColor = 0xB0B0B0;
@@ -196,11 +199,13 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
         renderTooltip(g, mouseX, mouseY);
     }
 
-    /** Trois conditions requises pour tirer (cf. {@link ITurret#hasAmmo}/{@link ITurret#hasPower}/
-     *  {@link ITurret#active}), affichées côte à côte plutôt qu'un statut unique ambigu — un joueur
-     *  voit d'un coup d'œil laquelle bloque le tir au lieu de deviner. */
+    /** Les quatre conditions requises pour tirer (cf. {@link ITurret#hasWeapon}/{@link ITurret#active}/
+     *  {@link ITurret#hasPower}/{@link ITurret#hasAmmo}), affichées côte à côte plutôt qu'un statut
+     *  unique ambigu — un joueur voit d'un coup d'œil laquelle bloque le tir au lieu de deviner.
+     *  « Arme » vient en premier : c'est la seule qui se règle en posant un bloc, pas dans cet écran. */
     private void drawChecklist(GuiGraphics g, ITurret be, int x, int y) {
         int cx = x;
+        cx = drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.weapon", be.hasWeapon(), cx, y);
         cx = drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.redstone", be.active(), cx, y);
         cx = drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.power", be.hasPower(), cx, y);
         drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.ammo", be.hasAmmo(), cx, y);

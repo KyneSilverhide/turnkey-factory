@@ -12,11 +12,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
 /**
- * Modèle procédural de la partie mobile de la tourelle (le socle statique est le modèle de bloc
- * JSON, cf. {@code models/block/turret.json}). Convention BlockEntityRenderer standard, pas
- * d'inversion façon {@code EntityModel} : +Y = haut, coordonnées de {@code addBox}/{@code PartPose}
- * en unités de pixel (1/16 de bloc), origine (0,0,0) = coin bas du bloc. « Avant » du canon = -Z au
- * repos (lacet/tangage à zéro) — cf. {@link TurretRenderer} pour le calcul de la visée.
+ * Modèle procédural de l'arme de tourelle. Il est dessiné par le renderer du <em>socle</em> (cf.
+ * {@link TurretRenderer}), donc <strong>toutes les coordonnées ci-dessous sont relatives au bloc
+ * socle</strong> : l'arme occupe le bloc au-dessus, d'où un plateau tournant à y=16 et un canon qui
+ * monte au-delà. Convention BlockEntityRenderer standard, pas d'inversion façon {@code EntityModel} :
+ * +Y = haut, coordonnées de {@code addBox}/{@code PartPose} en unités de pixel (1/16 de bloc),
+ * origine (0,0,0) = coin bas du socle. « Avant » du canon = -Z au repos (lacet/tangage à zéro) — cf.
+ * {@link TurretRenderer} pour le calcul de la visée.
  * <p>
  * Silhouette de mitrailleuse sur affût, et non plus un simple tube posé sur un cube : plaque de
  * base, deux joues verticales formant le berceau, boîte à munitions à l'arrière, puis un ensemble
@@ -42,7 +44,8 @@ public final class TurretModel {
     public static final String BARREL = "barrel";
     public static final String COG = "cog";
 
-    /** Hauteur du plateau tournant : il est posé SUR le socle statique, jamais encastré dedans. */
+    /** Hauteur du plateau tournant : il est posé SUR le socle statique, jamais encastré dedans —
+     *  c'est-à-dire au plancher du bloc arme, qui commence au sommet du socle. */
     private static final float TURNTABLE_Y = 16f;
 
     private TurretModel() {}
@@ -91,14 +94,15 @@ public final class TurretModel {
                 CubeListBuilder.create().texOffs(22, 32).addBox(-0.5f, 2, -8, 1, 2, 1), PartPose.ZERO);
 
         // ----- Engrenage cinétique (variante Create uniquement, cf. ITurret#cogAngle). -----
-        // Au CENTRE du bloc (y=8), pas sur le dessus : il formerait sinon une couronne au même
-        // endroit que l'affût et disparaîtrait sous l'arme. Ici il ceinture le corps du bloc, comme
+        // Au CENTRE du socle (y=8), pas sur son dessus : il formerait sinon une couronne au même
+        // endroit que l'affût et disparaîtrait sous l'arme. Ici il ceinture le corps du socle, comme
         // la meule (millstone) — la lecture attendue d'un engrenage qui s'engrène avec un Large
-        // Cogwheel voisin (cf. TurretCreateBlock, ICogWheel).
+        // Cogwheel voisin (cf. TurretBaseCreateBlock, ICogWheel), et c'est bien le socle qui est le
+        // membre du réseau cinétique.
         //
-        // Le moyeu est en pratique invisible (entièrement contenu dans le cube opaque du modèle de
-        // bloc, donc éliminé au test de profondeur) : seules les dents, qui dépassent de 2px des
-        // faces latérales, sont vues. Il reste modélisé pour que les dents tiennent à quelque chose.
+        // Le moyeu est en pratique invisible (entièrement contenu dans le cube opaque du socle, donc
+        // éliminé au test de profondeur) : seules les dents, qui dépassent de 2px des faces
+        // latérales, sont vues. Il reste modélisé pour que les dents tiennent à quelque chose.
         PartDefinition cog = root.addOrReplaceChild(COG,
                 CubeListBuilder.create().texOffs(0, 48).addBox(-6, -2, -6, 12, 4, 12),
                 PartPose.offset(8f, 8f, 8f));

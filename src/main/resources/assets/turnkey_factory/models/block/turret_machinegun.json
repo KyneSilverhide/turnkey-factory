@@ -1,0 +1,7 @@
+{
+  "__comment": "Aucune geometrie : l'arme est entierement dessinee par le renderer du socle (cf. RenderShape.INVISIBLE sur TurretWeaponBlock). Seule la texture de particules sert encore - casse, pas de course.",
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "turnkey_factory:block/turret_side"
+  }
+}

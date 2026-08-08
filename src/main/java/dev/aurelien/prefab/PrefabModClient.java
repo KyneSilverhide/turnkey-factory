@@ -35,12 +35,14 @@ public class PrefabModClient {
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerBlockEntityRenderer(ModBlockEntities.TURRET.get(), TurretRenderer::new);
-        // Create-only : cette classe est chargée dans tous les cas (elle sert déjà la tourelle
+        // Le renderer est porté par le SOCLE, pas par l'arme : c'est lui qui dessine l'affût et le
+        // canon dans le bloc au-dessus (cf. TurretRenderer), l'arme étant un bloc sans BlockEntity.
+        event.registerBlockEntityRenderer(ModBlockEntities.TURRET_BASE.get(), TurretRenderer::new);
+        // Create-only : cette classe est chargée dans tous les cas (elle sert déjà le socle à
         // charbon), mais la ligne qui suit ne référence CreateKineticContent (donc KineticBlockEntity)
         // que si la garde passe — résolution paresseuse, même principe que PrefabMod#<init>.
         if (CreateCompat.isLoaded()) {
-            event.registerBlockEntityRenderer(CreateKineticContent.TURRET_CREATE_BE.get(), TurretRenderer::new);
+            event.registerBlockEntityRenderer(CreateKineticContent.TURRET_BASE_CREATE_BE.get(), TurretRenderer::new);
         }
     }
 }

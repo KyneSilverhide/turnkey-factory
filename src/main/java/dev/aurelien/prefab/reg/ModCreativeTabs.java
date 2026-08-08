@@ -24,11 +24,13 @@ public class ModCreativeTabs {
                 output.accept(ModItems.LEVELER.get());
                 output.accept(ModItems.TEXTURIZER.get());
                 output.accept(ModItems.LAMPLIGHTER.get());
-                output.accept(ModItems.TURRET.get());
+                // Socles avant armes : c'est l'ordre dans lequel on les pose.
+                output.accept(ModItems.TURRET_BASE.get());
                 // Create-only : n'apparaît que si Create est chargé, cf. CreateKineticContent.
                 if (CreateCompat.isLoaded()) {
-                    output.accept(CreateKineticContent.TURRET_CREATE_ITEM.get());
+                    output.accept(CreateKineticContent.TURRET_BASE_CREATE_ITEM.get());
                 }
+                output.accept(ModItems.TURRET_MACHINEGUN.get());
                 output.accept(ModItems.ARCHITECT_BLUEPRINT.get());
                 output.accept(ModItems.CONTROL_CORE.get());
                 // Notre pépite de cuivre s'efface devant celle de Create quand il est chargé, comme sa

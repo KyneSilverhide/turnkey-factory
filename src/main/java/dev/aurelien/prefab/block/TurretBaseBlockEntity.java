@@ -43,7 +43,7 @@ import java.util.List;
  * consommé/gâché. À {@link #TICKS_PER_SHOT} = 200 (le coût par item d'un four vanilla), un charbon
  * (1600 ticks) vaut 8 tirs — le même nombre d'objets qu'il peut cuire.
  */
-public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITurret {
+public class TurretBaseBlockEntity extends BlockEntity implements MenuProvider, ITurret {
     public static final int MIN_RANGE = TurretCombat.MIN_RANGE;
     public static final int MAX_RANGE = TurretCombat.MAX_RANGE;
     public static final int DEFAULT_RANGE = TurretCombat.DEFAULT_RANGE;
@@ -61,8 +61,8 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
     /** Jauge en nombre de tirs, jamais en ticks de combustion — cf. javadoc de classe. */
     private int charge = 0;
 
-    public TurretBlockEntity(BlockPos pos, BlockState state) {
-        super(ModBlockEntities.TURRET.get(), pos, state);
+    public TurretBaseBlockEntity(BlockPos pos, BlockState state) {
+        super(ModBlockEntities.TURRET_BASE.get(), pos, state);
     }
 
     // ----- ITurret -----
@@ -79,7 +79,7 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
     @Override public boolean hasPower() { return charge > 0; }
     @Override public boolean hasAmmo() { return combat.hasAmmo(); }
 
-    /** Enregistré une seule fois par {@link dev.aurelien.prefab.block.TurretBlock#setPlacedBy}. */
+    /** Enregistré une seule fois par {@link TurretBaseBlock#setPlacedBy}. */
     public void setOwner(java.util.UUID id) { combat.setOwner(id); }
 
     @Override
@@ -103,7 +103,7 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
      * Vrai jusqu'au premier tick serveur après (re)création de ce BlockEntity (pose OU chargement d'un
      * chunk) : {@code active} est persisté (cf. {@link TurretCombat#save}) mais doit rester le reflet du
      * signal redstone RÉEL, pas d'une valeur figée sur disque — {@code onPlace}/{@code neighborChanged}
-     * (cf. {@link TurretBlock}) ne se redéclenchent pas à un simple rechargement de chunk sans
+     * (cf. {@link TurretBaseBlock}) ne se redéclenchent pas à un simple rechargement de chunk sans
      * changement de voisin, donc sans ce resync l'état chargé peut rester en désaccord avec le signal
      * effectivement présent au bloc.
      */
@@ -220,7 +220,7 @@ public class TurretBlockEntity extends BlockEntity implements MenuProvider, ITur
 
     @Override
     public Component getDisplayName() {
-        return Component.translatable("block.turnkey_factory.turret");
+        return Component.translatable("block.turnkey_factory.turret_base");
     }
 
     @Nullable
