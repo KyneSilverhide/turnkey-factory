@@ -10,12 +10,18 @@ import net.minecraft.world.item.ItemStack;
  * source de poudre à canon, une munition qui en exigerait immobiliserait la tourelle derrière une
  * ferme à creepers.
  * <p>
- * Avec Create, l'usure est gérée par le déployeur lui-même : sa recette {@code create:deploying}
- * porte {@code keep_held_item}, et {@code BeltDeployerCallbacks} appelle alors
- * {@code hurtAndBreak(1)} au lieu de {@code shrink(1)} — exactement le comportement du papier de
- * verre. Cette classe ne sert donc qu'à obtenir la <strong>même</strong> usure à la table
- * d'artisanat, où rien de tel n'existe : on passe par le reliquat d'artisanat, que NeoForge rend
- * sensible à la pile (cf. {@code IItemExtension#getCraftingRemainingItem(ItemStack)}, appelé par
+ * Avec Create, l'usure est gérée par le déployeur lui-même, à condition de ne <strong>pas</strong>
+ * mettre {@code keep_held_item} sur la recette {@code create:deploying} : ce champ fait sauter
+ * tout le bloc d'usure/consommation dans {@code BeltDeployerCallbacks#activate} (vérifié par
+ * décompilation — à {@code true}, aucun {@code hurtAndBreak} ni {@code shrink} n'est jamais
+ * appelé sur l'item tenu). Sans ce champ, le déployeur applique son comportement par défaut sur un
+ * item tenu qui a une durabilité ({@code maxDamage > 0}) : {@code hurtAndBreak(1)} au lieu de
+ * {@code shrink(1)} — exactement le comportement du papier de verre ({@code
+ * create:sandpaper_polishing}, qui ne définit pas non plus {@code keep_held_item}).
+ * <p>
+ * Cette classe sert à obtenir la <strong>même</strong> usure à la table d'artisanat, où rien de
+ * tel n'existe : on passe par le reliquat d'artisanat, que NeoForge rend sensible à la pile (cf.
+ * {@code IItemExtension#getCraftingRemainingItem(ItemStack)}, appelé par
  * {@code Recipe#getRemainingItems} via {@code ItemStack}). L'amorce est donc rendue au joueur,
  * abîmée d'un point, jusqu'à disparaître au huitième usage.
  */

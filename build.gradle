@@ -33,6 +33,8 @@ repositories {
     maven { name = "Ithundxr";   url = "https://maven.ithundxr.dev/snapshots" }
     // Modrinth maven (Create Deco et autres addons optionnels).
     maven { name = "Modrinth";   url = "https://api.modrinth.com/maven" }
+    // JEI (Just Enough Items) — dépendance de dev optionnelle, pour tester les recettes en jeu.
+    maven { name = "BlameJared"; url = "https://maven.blamejared.com" }
 }
 
 base {
@@ -133,6 +135,10 @@ dependencies {
     // de dépendance déclarée dans neoforge.mods.toml) — tout code qui touche ces types doit rester
     // dans des classes chargées uniquement quand CreateCompat.isLoaded() est vrai (cf. compat/create).
     compileOnly("com.simibubi.create:create-1.21.1:${create_version}")
+
+    // JEI — présent uniquement en runClient/runData pour tester les recettes, jamais publié ni
+    // référencé en compileOnly : aucun code de ce mod ne dépend de l'API JEI.
+    localRuntime("mezz.jei:jei-1.21.1-neoforge:${jei_version}")
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

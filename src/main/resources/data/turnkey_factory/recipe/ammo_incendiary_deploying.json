@@ -1,5 +1,5 @@
 {
-  "__comment": "keep_held_item : le deployeur abime l'amorce d'un point au lieu de la consommer (cf. BeltDeployerCallbacks, qui appelle hurtAndBreak plutot que shrink quand la recette le demande) — meme mecanique que le papier de verre, donc 8 obus par amorce.",
+  "__comment": "PAS de keep_held_item : ce flag fait sauter tout le bloc d'usure/consommation cote Create (cf. BeltDeployerCallbacks#activate, verifie par decompilation — keepHeldItem == true saute directement au son/avancement, sans jamais appeler hurtAndBreak ni shrink). L'usure 'papier de verre' (hurtAndBreak au lieu de shrink) est le comportement PAR DEFAUT du deployeur quand l'item tenu a une durabilite (maxDamage > 0), exactement comme la recette create:sandpaper_polishing qui ne definit pas ce champ non plus. Avec durability(8) sur l'amorce, on obtient donc les 8 obus par amorce voulus.",
   "neoforge:conditions": [
     {
       "type": "neoforge:mod_loaded",
@@ -11,7 +11,6 @@
     { "item": "turnkey_factory:ammo_slug" },
     { "item": "turnkey_factory:incendiary_charge" }
   ],
-  "keep_held_item": true,
   "results": [
     { "id": "turnkey_factory:ammo_incendiary" }
   ]
