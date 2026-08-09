@@ -7,17 +7,14 @@ import dev.aurelien.prefab.network.SetTurretRangePayload;
 import dev.aurelien.prefab.network.SetTurretTargetsPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.Slot;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
+public class TurretScreen extends MachineScreen<TurretMenu> {
     private static final int Y_HEADER = 6;
     private static final int Y_RANGE = 20;
     private static final int Y_TARGETS_LABEL = 46;
@@ -26,19 +23,7 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
     private static final int Y_STATUS = 108;
     private static final int Y_FUEL = 130;
     private static final int FUEL_BAR_H = 10;
-    private static final int LINE_H = 10;
-    private static final int CHECKLIST_GAP = 6;
 
-    /** Mêmes teintes que le remplissage de la jauge d'énergie ({@link #drawPowerGauge}) — un seul
-     *  langage de couleur "prêt/manquant" dans tout l'écran. */
-    private static final int COLOR_OK = 0x4FA83D;
-    private static final int COLOR_MISSING = 0xC24B4B;
-
-    private static final int LABEL_X = 12;
-    private static final int MINUS_X = 72;
-    private static final int VALUE_X = 98;
-    private static final int PLUS_X = 120;
-    private static final int MAX_X = 146;
     private static final int TARGET_BTN_W = 58;
     private static final int TARGET_BTN_GAP = 4;
 
@@ -55,6 +40,11 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
         super(menu, inv, title);
         this.imageWidth = 210;
         this.imageHeight = 230;
+    }
+
+    @Override
+    protected int accentColor() {
+        return 0xFF463C; // cœur incandescent de l'optique
     }
 
     private ITurret be() {
@@ -127,19 +117,6 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
                 Component.translatable(on ? "gui.turnkey_factory.turret.on" : "gui.turnkey_factory.turret.off"));
     }
 
-    @Override
-    protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
-        g.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0xD0101010);
-        for (Slot slot : menu.slots) {
-            slotBg(g, leftPos + slot.x - 1, topPos + slot.y - 1);
-        }
-    }
-
-    private void slotBg(GuiGraphics g, int x, int y) {
-        g.fill(x, y, x + 18, y + 18, 0xFF8B8B8B);
-        g.fill(x + 1, y + 1, x + 17, y + 17, 0xFF373737);
-    }
-
     /** Nom de la cible verrouillée, résolu côté client depuis l'id synchronisé (jamais recalculé côté serveur). */
     private Component targetName(ITurret be) {
         if (minecraft == null || minecraft.level == null) return null;
@@ -152,16 +129,12 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
         super.render(g, mouseX, mouseY, partialTick);
 
         int lx = leftPos + LABEL_X;
-        int vx = leftPos + VALUE_X;
 
-        g.drawString(font, Component.translatable("gui.turnkey_factory.turret.zone"), lx, topPos + Y_HEADER, 0xC0C0FF, false);
-        int rangeTextY = topPos + Y_RANGE + 6;
-        g.drawString(font, Component.translatable("gui.turnkey_factory.turret.range"), lx, rangeTextY, 0xFFFFFF, false);
-        g.drawString(font, String.valueOf(range), vx, rangeTextY, 0xFFE070, false);
+        header(g, Component.translatable("gui.turnkey_factory.turret.zone"), lx, topPos + Y_HEADER);
+        label(g, Y_RANGE, Component.translatable("gui.turnkey_factory.turret.range"), range);
+        header(g, Component.translatable("gui.turnkey_factory.turret.targets"), lx, topPos + Y_TARGETS_LABEL);
 
-        g.drawString(font, Component.translatable("gui.turnkey_factory.turret.targets"), lx, topPos + Y_TARGETS_LABEL, 0xC0C0FF, false);
-
-        int maxTextWidth = imageWidth - LABEL_X - 8;
+        int maxTextWidth = textWidth();
 
         ITurret be = be();
         Component status;
@@ -188,7 +161,14 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
         drawWrapped(g, status, lx, topPos + Y_STATUS, maxTextWidth, statusColor);
 
         if (be != null) {
-            drawChecklist(g, be, lx, topPos + Y_CHECKLIST);
+            // Les quatre conditions requises pour tirer, affichées côte à côte plutôt qu'un statut
+            // unique ambigu — un joueur voit d'un coup d'œil laquelle bloque le tir au lieu de deviner.
+            // « Arme » vient en premier : c'est la seule qui se règle en posant un bloc, pas ici.
+            drawChecklist(g, lx, topPos + Y_CHECKLIST, maxTextWidth,
+                    check("gui.turnkey_factory.turret.checklist.weapon", be.hasWeapon()),
+                    check("gui.turnkey_factory.turret.checklist.redstone", be.active()),
+                    check("gui.turnkey_factory.turret.checklist.power", be.hasPower()),
+                    check("gui.turnkey_factory.turret.checklist.ammo", be.hasAmmo()));
             drawPowerGauge(g, be, lx, topPos + Y_FUEL, maxTextWidth);
         }
 
@@ -197,24 +177,6 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
         if (playerButton != null) playerButton.setMessage(targetLabel("player", player));
 
         renderTooltip(g, mouseX, mouseY);
-    }
-
-    /** Les quatre conditions requises pour tirer (cf. {@link ITurret#hasWeapon}/{@link ITurret#active}/
-     *  {@link ITurret#hasPower}/{@link ITurret#hasAmmo}), affichées côte à côte plutôt qu'un statut
-     *  unique ambigu — un joueur voit d'un coup d'œil laquelle bloque le tir au lieu de deviner.
-     *  « Arme » vient en premier : c'est la seule qui se règle en posant un bloc, pas dans cet écran. */
-    private void drawChecklist(GuiGraphics g, ITurret be, int x, int y) {
-        int cx = x;
-        cx = drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.weapon", be.hasWeapon(), cx, y);
-        cx = drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.redstone", be.active(), cx, y);
-        cx = drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.power", be.hasPower(), cx, y);
-        drawChecklistItem(g, "gui.turnkey_factory.turret.checklist.ammo", be.hasAmmo(), cx, y);
-    }
-
-    private int drawChecklistItem(GuiGraphics g, String key, boolean ok, int x, int y) {
-        Component label = Component.translatable(key);
-        g.drawString(font, label, x, y, ok ? COLOR_OK : COLOR_MISSING, false);
-        return x + font.width(label) + CHECKLIST_GAP;
     }
 
     /** Jauge d'énergie (charge de charbon ou vitesse de rotation, cf. ITurret#powerFraction) — fond
@@ -229,18 +191,5 @@ public class TurretScreen extends AbstractContainerScreen<TurretMenu> {
         }
 
         g.drawCenteredString(font, be.powerLabel(), x + width / 2, y + 1, 0xFFFFFF);
-    }
-
-    private void drawWrapped(GuiGraphics g, Component text, int x, int y, int maxWidth, int color) {
-        int lineY = y;
-        for (FormattedCharSequence line : font.split(text, maxWidth)) {
-            g.drawString(font, line, x, lineY, color, false);
-            lineY += LINE_H;
-        }
-    }
-
-    @Override
-    protected void renderLabels(GuiGraphics g, int mouseX, int mouseY) {
-        // fenêtre épurée : pas de titre vanilla ni libellé d'inventaire
     }
 }

@@ -26,7 +26,7 @@
 
   "gui.turnkey_factory.machine.set_center": "Centre",
   "gui.turnkey_factory.machine.set_center.tooltip": "Fait de ce bloc la référence géométrique partagée pour les niveleuses/texturiseurs/allumeurs de réverbères adjacents (leur zone de travail se recentre dessus).",
-  "gui.turnkey_factory.machine.work_area": "Zone de travail",
+  "gui.turnkey_factory.machine.materials": "Matériaux",
 
   "gui.turnkey_factory.theme.stone": "Pierre",
   "gui.turnkey_factory.theme.brick": "Brique",
@@ -105,7 +105,7 @@
   "gui.turnkey_factory.lamplighter.spacing": "Espacement",
   "gui.turnkey_factory.lamplighter.start": "Démarrer",
   "gui.turnkey_factory.lamplighter.stop": "Arrêter",
-  "gui.turnkey_factory.lamplighter.materials": "Matériaux (%s lampadaires prévus, 1 de chaque)",
+  "gui.turnkey_factory.lamplighter.materials": "%s lampadaires prévus — 1 torche, 1 lingot et 1 rondin chacun",
   "gui.turnkey_factory.lamplighter.any_log": "N'importe quelle bûche (essence choisie automatiquement)",
   "gui.turnkey_factory.lamplighter.status.working": "Allumage… %s restant(s)",
   "gui.turnkey_factory.lamplighter.status.missing_material": "En pause : besoin de torches/lingots de fer/bûches dans les inventaires liés",

@@ -40,26 +40,31 @@ public class LevelerMenu extends AbstractContainerMenu {
         this.pos = pos;
         this.access = ContainerLevelAccess.create(inv.player.level(), pos);
 
-        addSlot(new Slot(container, SHOVEL_SLOT, 180, 52) {
+        // Colonne outil à droite, côte à côte sous le libellé « Pelle/Pioche » centré sur
+        // MachineScreen.RIGHT_CX (252) : les deux slots occupent 232..272 une fois dessinés.
+        addSlot(new Slot(container, SHOVEL_SLOT, 233, 22) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.is(ItemTags.SHOVELS);
             }
         });
-        addSlot(new Slot(container, PICKAXE_SLOT, 180, 74) {
+        addSlot(new Slot(container, PICKAXE_SLOT, 255, 22) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.is(ItemTags.PICKAXES);
             }
         });
 
+        // Inventaire centré dans le panneau de 300 de large : (300 - 9*18) / 2 = 69. Ces valeurs
+        // dupliquent MachineScreen.INV_X/INV_Y/HOTBAR_Y, qui est côté client uniquement — un menu est
+        // construit aussi sur le serveur dédié et ne peut pas charger une classe d'écran.
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(inv, col + row * 9 + 9, 9 + col * 18, 150 + row * 18));
+                addSlot(new Slot(inv, col + row * 9 + 9, 69 + col * 18, 154 + row * 18));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(inv, col, 9 + col * 18, 208));
+            addSlot(new Slot(inv, col, 69 + col * 18, 212));
         }
     }
 

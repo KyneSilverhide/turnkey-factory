@@ -11,7 +11,6 @@ import dev.aurelien.prefab.network.SetStylePayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
@@ -23,7 +22,7 @@ import java.util.List;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
-public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
+public class ControllerScreen extends MachineScreen<ControllerMenu> {
     // Disposition sur DEUX colonnes (plus large que haut → tient à l'écran même en GUI scale auto).
     private static final int COL2_DX = 168; // décalage horizontal de la 2e colonne (Décalage du fantôme)
 
@@ -35,8 +34,9 @@ public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
     private static final int Y_BUTTONS = 138;
     private static final int Y_STATUS = 162;
 
-    // Colonnes des contrôles (relatives à leftPos, dans une colonne de panneau)
-    private static final int LABEL_X = 12;
+    // Colonnes des contrôles (relatives à leftPos, dans une colonne de panneau). Elles masquent
+    // volontairement la grille partagée de MachineScreen : le contrôleur est un panneau de 500 sur
+    // TROIS colonnes, ses libellés sont plus larges et n'ont pas de bouton Max.
     private static final int MINUS_X = 96;
     private static final int VALUE_X = 122;
     private static final int PLUS_X = 144;
@@ -63,6 +63,11 @@ public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
         super(menu, inv, title);
         this.imageWidth = 500;
         this.imageHeight = 184;
+    }
+
+    @Override
+    protected int accentColor() {
+        return 0x78A5DC; // LED bleue du bandeau du contrôleur
     }
 
     private ControllerBlockEntity be() {
@@ -174,11 +179,6 @@ public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
     }
 
     @Override
-    protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
-        g.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0xD0101010);
-    }
-
-    @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         super.render(g, mouseX, mouseY, partialTick);
 
@@ -188,13 +188,13 @@ public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
         int vx2 = vx + COL2_DX;
 
         // Colonne gauche : dimensions
-        g.drawString(font, Component.translatable("gui.turnkey_factory.controller.dimensions"), lx, topPos + Y_HEADER, 0xC0C0FF, false);
+        header(g, Component.translatable("gui.turnkey_factory.controller.dimensions"), lx, topPos + Y_HEADER);
         label(g, lx, vx, Y_ROW1, Component.translatable("gui.turnkey_factory.width"), w);
         label(g, lx, vx, Y_ROW2, Component.translatable("gui.turnkey_factory.length"), l);
         label(g, lx, vx, Y_ROW3, Component.translatable("gui.turnkey_factory.controller.height"), h);
 
         // Colonne droite : décalage du fantôme
-        g.drawString(font, Component.translatable("gui.turnkey_factory.controller.ghost_offset"), lx2, topPos + Y_HEADER, 0xC0C0FF, false);
+        header(g, Component.translatable("gui.turnkey_factory.controller.ghost_offset"), lx2, topPos + Y_HEADER);
         label(g, lx2, vx2, Y_ROW1, Component.translatable("gui.turnkey_factory.axis_x"), ox);
         label(g, lx2, vx2, Y_ROW2, Component.translatable("gui.turnkey_factory.axis_y"), oy);
         label(g, lx2, vx2, Y_ROW3, Component.translatable("gui.turnkey_factory.axis_z"), oz);
@@ -209,7 +209,7 @@ public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
         boolean hasSource = linked > 0 || (minecraft != null && minecraft.player != null && minecraft.player.isCreative());
 
         // Colonne 3 : ressources requises (icône + quantité, manquant en surbrillance), tooltip au survol.
-        g.drawString(font, Component.translatable("gui.turnkey_factory.controller.materials"), leftPos + PANEL3_X, topPos + Y_HEADER, 0xC0C0FF, false);
+        header(g, Component.translatable("gui.turnkey_factory.controller.materials"), leftPos + PANEL3_X, topPos + Y_HEADER);
         List<ControllerBlockEntity.MaterialLine> materials = be != null ? be.clientMaterialLines() : List.of();
         int maxRows = (imageHeight - Y_MATERIALS_ROW1 - 8) / MATERIAL_ROW_H;
         ItemStack hoveredIcon = ItemStack.EMPTY;
@@ -285,15 +285,11 @@ public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
         }
     }
 
-    /** Dessine le libellé à gauche et la valeur centrée entre les boutons (-/+), alignés verticalement. */
+    /** Variante à trois colonnes de {@link MachineScreen#label} : le X est explicite, la colonne de
+     *  droite (décalage du fantôme) réutilisant la même rangée que celle de gauche. */
     private void label(GuiGraphics g, int labelX, int valueX, int rowY, Component name, int v) {
         int textY = topPos + rowY + 6;
-        g.drawString(font, name, labelX, textY, 0xFFFFFF, false);
-        g.drawString(font, String.valueOf(v), valueX, textY, 0xFFE070, false);
-    }
-
-    @Override
-    protected void renderLabels(GuiGraphics g, int mouseX, int mouseY) {
-        // fenêtre épurée : pas de titre vanilla ni libellé d'inventaire
+        g.drawString(font, name, labelX, textY, COLOR_LABEL, false);
+        g.drawString(font, String.valueOf(v), valueX, textY, COLOR_VALUE, false);
     }
 }

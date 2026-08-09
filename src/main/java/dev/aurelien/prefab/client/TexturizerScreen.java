@@ -10,47 +10,31 @@ import dev.aurelien.prefab.network.TexturizerActionPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * Disposition harmonisée avec Leveler/Lamplighter/Turret (cf. leurs javadocs de classe) : un en-tête de
- * section générique ("Zone de travail"), une colonne outil séparée à droite (au lieu d'empiler tout en
- * une seule colonne étroite), largeur 280 pour rester sous le plancher de 240 de haut garanti par
- * Minecraft en échelle auto (cf. {@link TexturizerMenu} pour les positions de slots correspondantes).
+ * Disposition sur DEUX colonnes, gabarit commun à {@link MachineScreen} : réglages à gauche, colonne
+ * outil à droite, puis info / action / statut sur toute la largeur, sous le bas de la colonne droite
+ * (c'est cette règle qui empêche la ligne d'info, qui se replie sur deux lignes, de passer sous le
+ * bouton Démarrer comme c'était le cas avant).
  */
-public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
-    private static final int Y_HEADER = 6;
-    private static final int Y_RADIUS = 20;
-    /** Motif et parcelles gratuites partagent une seule rangée (deux demi-boutons) pour ne pas agrandir la fenêtre. */
-    private static final int Y_TOGGLES = 46;
-    private static final int Y_INFO = 70;
-    private static final int Y_ACTION_ROW = 84;
-    /** Départ de la checklist (montre toutes les conditions à la fois, cf. TurretScreen) ; le texte de
-     *  statut en prose est dessiné juste en dessous, à la position renvoyée par {@link #drawChecklist}. */
-    private static final int Y_STATUS = 108;
-    private static final int LINE_H = 10; // hauteur de ligne pour le texte multi-lignes (info/statut)
-    private static final int CHECKLIST_GAP = 6;
-    private static final int COLOR_OK = 0x4FA83D;
-    private static final int COLOR_MISSING = 0xC24B4B;
-
-    private static final int LABEL_X = 12;
-    private static final int MINUS_X = 72;
-    private static final int VALUE_X = 98;
-    private static final int PLUS_X = 120;
-    private static final int MAX_X = 146;
-    private static final int TOGGLE_W = 76; // largeur d'un demi-bouton sur la rangée Y_TOGGLES
+public class TexturizerScreen extends MachineScreen<TexturizerMenu> {
+    private static final int Y_RADIUS = Y_ROW0;
+    /** Motif et parcelles gratuites partagent une seule rangée (deux demi-boutons). */
+    private static final int Y_TOGGLES = Y_ROW0 + ROW_STEP;
+    private static final int TOGGLE_W = 76;
     private static final int TOGGLE_GAP = 4;
-    private static final int TOGGLE_BTN_W = 130;
-    private static final int CENTER_BTN_W = 70;
-    private static final int CENTER_BTN_GAP = 8;
-    /** Position X du slot outil / libellé de son nom, cohérente avec {@link TexturizerMenu}. */
-    static final int TOOL_X = 240;
+    /**
+     * Remonté par rapport au {@link MachineScreen#Y_INFO} partagé : ici la colonne outil s'arrête à 40
+     * et la rangée de motifs à 50, donc l'info peut démarrer plus haut. Ça lui laisse quatre lignes
+     * avant le bouton Démarrer au lieu de deux — c'est la chaîne la plus longue du mod, et son premier
+     * mot (« Cobble/gravier/andésite/pierre ») est insécable, donc le repli est difficile à prévoir.
+     */
+    private static final int Y_INFO_TOP = Y_ROW0 + 2 * ROW_STEP + 4;
 
     private int radius;
     private boolean coarseDirt;
@@ -61,8 +45,13 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
 
     public TexturizerScreen(TexturizerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
-        this.imageWidth = 280;
-        this.imageHeight = 232;
+        this.imageWidth = PANEL_W;
+        this.imageHeight = PANEL_H;
+    }
+
+    @Override
+    protected int accentColor() {
+        return 0x968A7A; // tuile de gravier de la mosaïque
     }
 
     private TexturizerBlockEntity be() {
@@ -71,6 +60,11 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
             return be;
         }
         return null;
+    }
+
+    @Override
+    protected boolean isAccentSlot(Slot slot) {
+        return slot.index == 0; // slot outil
     }
 
     @Override
@@ -89,15 +83,15 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
         addRenderableWidget(Button.builder(Component.literal("-"), b -> {
             radius = Mth.clamp(radius - 1, TexturizerBlockEntity.MIN_RADIUS, TexturizerBlockEntity.MAX_RADIUS);
             sendRadius();
-        }).bounds(leftPos + MINUS_X, topPos + Y_RADIUS, 20, 20).build());
+        }).bounds(leftPos + MINUS_X, topPos + Y_RADIUS, SMALL_BTN_W, BTN_H).build());
         addRenderableWidget(Button.builder(Component.literal("+"), b -> {
             radius = Mth.clamp(radius + 1, TexturizerBlockEntity.MIN_RADIUS, TexturizerBlockEntity.MAX_RADIUS);
             sendRadius();
-        }).bounds(leftPos + PLUS_X, topPos + Y_RADIUS, 20, 20).build());
+        }).bounds(leftPos + PLUS_X, topPos + Y_RADIUS, SMALL_BTN_W, BTN_H).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.turnkey_factory.texturizer.max"), b -> {
             radius = TexturizerBlockEntity.MAX_RADIUS;
             sendRadius();
-        }).bounds(leftPos + MAX_X, topPos + Y_RADIUS, 32, 20).build());
+        }).bounds(leftPos + MAX_X, topPos + Y_RADIUS, MAX_BTN_W, BTN_H).build());
 
         paletteButton = addRenderableWidget(Button.builder(paletteLabel(), b -> {
             TexturizerBlockEntity.Palette current = currentPalette();
@@ -105,7 +99,7 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
                     ? TexturizerBlockEntity.Palette.DIRT
                     : TexturizerBlockEntity.Palette.STONE;
             PacketDistributor.sendToServer(new SetTexturizerPalettePayload(menu.pos(), next.ordinal()));
-        }).bounds(leftPos + LABEL_X, topPos + Y_TOGGLES, TOGGLE_W, 20)
+        }).bounds(leftPos + LABEL_X, topPos + Y_TOGGLES, TOGGLE_W, BTN_H)
                 .tooltip(Tooltip.create(Component.translatable("gui.turnkey_factory.texturizer.palette.tooltip")))
                 .build());
 
@@ -114,7 +108,7 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
             coarseDirt = !coarseDirt;
             PacketDistributor.sendToServer(new SetTexturizerCoarseDirtPayload(menu.pos(), coarseDirt));
             coarseDirtButton.setMessage(coarseDirtLabel());
-        }).bounds(leftPos + LABEL_X + TOGGLE_W + TOGGLE_GAP, topPos + Y_TOGGLES, TOGGLE_W, 20)
+        }).bounds(leftPos + LABEL_X + TOGGLE_W + TOGGLE_GAP, topPos + Y_TOGGLES, TOGGLE_W, BTN_H)
                 .tooltip(Tooltip.create(Component.translatable("gui.turnkey_factory.texturizer.coarse_dirt.tooltip")))
                 .build());
 
@@ -122,11 +116,11 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
             TexturizerBlockEntity current = be();
             boolean next = current == null || !current.active();
             PacketDistributor.sendToServer(new TexturizerActionPayload(menu.pos(), next));
-        }).bounds(leftPos + LABEL_X, topPos + Y_ACTION_ROW, TOGGLE_BTN_W, 20).build());
+        }).bounds(leftPos + LABEL_X, topPos + Y_ACTION_ROW, START_BTN_W, BTN_H).build());
 
         addRenderableWidget(Button.builder(Component.translatable("gui.turnkey_factory.machine.set_center"), b -> {
             PacketDistributor.sendToServer(new SetCenterPayload(menu.pos()));
-        }).bounds(leftPos + LABEL_X + TOGGLE_BTN_W + CENTER_BTN_GAP, topPos + Y_ACTION_ROW, CENTER_BTN_W, 20)
+        }).bounds(leftPos + CENTER_BTN_X, topPos + Y_ACTION_ROW, CENTER_BTN_W, BTN_H)
                 .tooltip(Tooltip.create(Component.translatable("gui.turnkey_factory.machine.set_center.tooltip")))
                 .build());
     }
@@ -164,35 +158,18 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
     }
 
     @Override
-    protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
-        g.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0xD0101010);
-        for (Slot slot : menu.slots) {
-            slotBg(g, leftPos + slot.x - 1, topPos + slot.y - 1, slot.index == 0);
-        }
-    }
-
-    /** {@code highlight} distingue le slot pioche (bordure violette) des slots d'inventaire (gris). */
-    private void slotBg(GuiGraphics g, int x, int y, boolean highlight) {
-        g.fill(x, y, x + 18, y + 18, highlight ? 0xFFB080FF : 0xFF8B8B8B);
-        g.fill(x + 1, y + 1, x + 17, y + 17, 0xFF373737);
-    }
-
-    @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         super.render(g, mouseX, mouseY, partialTick);
 
         int lx = leftPos + LABEL_X;
-        int vx = leftPos + VALUE_X;
 
-        g.drawString(font, Component.translatable("gui.turnkey_factory.machine.work_area"), lx, topPos + Y_HEADER, 0xC0C0FF, false);
-        int textY = topPos + Y_RADIUS + 6;
-        g.drawString(font, Component.translatable("gui.turnkey_factory.texturizer.radius"), lx, textY, 0xFFFFFF, false);
-        g.drawString(font, String.valueOf(radius), vx, textY, 0xFFE070, false);
+        label(g, Y_RADIUS, Component.translatable("gui.turnkey_factory.texturizer.radius"), radius);
 
-        // Pleine largeur : le slot outil (TOOL_X) ne descend que jusqu'à Y=40 (cf. TexturizerMenu), donc
-        // rien n'empiète sur l'info/la checklist/le statut qui commencent bien plus bas.
-        int maxTextWidth = imageWidth - LABEL_X - 8;
+        rightHeader(g, Component.translatable(currentPalette() == TexturizerBlockEntity.Palette.STONE
+                ? "gui.turnkey_factory.texturizer.tool.pickaxe"
+                : "gui.turnkey_factory.texturizer.tool.shovel"), Y_ROW0);
 
+        int maxTextWidth = textWidth();
         TexturizerBlockEntity be = be();
         if (be != null) {
             if (paletteButton != null) {
@@ -204,58 +181,53 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
                     ? "gui.turnkey_factory.texturizer.info.stone"
                     : "gui.turnkey_factory.texturizer.info.dirt";
             Component info = Component.translatable(infoKey, be.totalCells(), be.available());
-            drawWrapped(g, info, lx, topPos + Y_INFO, maxTextWidth, be.available() > 0 ? 0x80FF80 : 0xFFC040);
+            drawWrapped(g, info, lx, topPos + Y_INFO_TOP, maxTextWidth, be.available() > 0 ? COLOR_GOOD : COLOR_WARN);
         }
-
-        Component toolsLabel = Component.translatable(currentPalette() == TexturizerBlockEntity.Palette.STONE
-                ? "gui.turnkey_factory.texturizer.tool.pickaxe"
-                : "gui.turnkey_factory.texturizer.tool.shovel");
-        g.drawString(font, toolsLabel, leftPos + TOOL_X - font.width(toolsLabel) / 2 + 9, topPos + Y_HEADER, 0xC0C0FF, false);
 
         int statusY = topPos + Y_STATUS;
         if (be != null) {
             statusY = drawChecklist(g, lx, topPos + Y_STATUS, maxTextWidth,
-                    new ChecklistItem(Component.translatable("gui.turnkey_factory.texturizer.checklist.link"), be.hasLink()),
-                    new ChecklistItem(Component.translatable("gui.turnkey_factory.texturizer.checklist.tool"), be.hasTool()),
-                    new ChecklistItem(Component.translatable("gui.turnkey_factory.texturizer.checklist.material"), be.hasMaterial()));
+                    check("gui.turnkey_factory.texturizer.checklist.link", be.hasLink()),
+                    check("gui.turnkey_factory.texturizer.checklist.tool", be.hasTool()),
+                    check("gui.turnkey_factory.texturizer.checklist.material", be.hasMaterial()));
         }
 
         Component status;
         int statusColor;
         if (be == null) {
             status = Component.empty();
-            statusColor = 0xB0B0B0;
+            statusColor = COLOR_IDLE;
         } else {
             switch (be.status()) {
                 case TexturizerBlockEntity.STATUS_WORKING -> {
                     status = Component.translatable("gui.turnkey_factory.texturizer.status.working", be.queueSize());
-                    statusColor = 0x80C0FF;
+                    statusColor = COLOR_WORKING;
                 }
                 case TexturizerBlockEntity.STATUS_MISSING_MATERIAL -> {
                     String key = be.palette() == TexturizerBlockEntity.Palette.STONE
                             ? "gui.turnkey_factory.texturizer.status.missing_material.stone"
                             : "gui.turnkey_factory.texturizer.status.missing_material.dirt";
                     status = Component.translatable(key);
-                    statusColor = 0xFFC040;
+                    statusColor = COLOR_WARN;
                 }
                 case TexturizerBlockEntity.STATUS_DONE -> {
                     status = Component.translatable("gui.turnkey_factory.texturizer.status.done");
-                    statusColor = 0x80FF80;
+                    statusColor = COLOR_GOOD;
                 }
                 case TexturizerBlockEntity.STATUS_NO_TOOL -> {
                     String key = be.palette() == TexturizerBlockEntity.Palette.STONE
                             ? "gui.turnkey_factory.texturizer.status.no_pickaxe"
                             : "gui.turnkey_factory.texturizer.status.no_shovel";
                     status = Component.translatable(key);
-                    statusColor = 0xFF6060;
+                    statusColor = COLOR_ERROR;
                 }
                 case TexturizerBlockEntity.STATUS_NO_LINK -> {
                     status = Component.translatable("gui.turnkey_factory.texturizer.status.no_link");
-                    statusColor = 0xFF6060;
+                    statusColor = COLOR_ERROR;
                 }
                 default -> {
                     status = Component.translatable("gui.turnkey_factory.texturizer.status.inactive");
-                    statusColor = 0xB0B0B0;
+                    statusColor = COLOR_IDLE;
                 }
             }
         }
@@ -266,41 +238,5 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
         }
 
         renderTooltip(g, mouseX, mouseY);
-    }
-
-    /** Découpe {@code text} sur plusieurs lignes plutôt que de le laisser déborder du panneau. */
-    private void drawWrapped(GuiGraphics g, Component text, int x, int y, int maxWidth, int color) {
-        int lineY = y;
-        for (FormattedCharSequence line : font.split(text, maxWidth)) {
-            g.drawString(font, line, x, lineY, color, false);
-            lineY += LINE_H;
-        }
-    }
-
-    private record ChecklistItem(Component label, boolean ok) {}
-
-    /**
-     * Enchaîne les items horizontalement (façon TurretScreen#drawChecklist : toutes les conditions
-     * visibles à la fois plutôt qu'un seul statut "gagnant"), passe à la ligne si la largeur disponible
-     * est dépassée. Renvoie le Y juste sous la dernière ligne, pour enchaîner le texte de statut en
-     * prose sans chevaucher la checklist.
-     */
-    private int drawChecklist(GuiGraphics g, int x, int y, int maxWidth, ChecklistItem... items) {
-        int cx = x, cy = y;
-        for (ChecklistItem item : items) {
-            int w = font.width(item.label());
-            if (cx != x && cx + w > x + maxWidth) {
-                cx = x;
-                cy += LINE_H;
-            }
-            g.drawString(font, item.label(), cx, cy, item.ok() ? COLOR_OK : COLOR_MISSING, false);
-            cx += w + CHECKLIST_GAP;
-        }
-        return cy + LINE_H;
-    }
-
-    @Override
-    protected void renderLabels(GuiGraphics g, int mouseX, int mouseY) {
-        // fenêtre épurée : pas de titre vanilla ni libellé d'inventaire
     }
 }

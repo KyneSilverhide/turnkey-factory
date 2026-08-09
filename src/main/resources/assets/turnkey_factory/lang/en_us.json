@@ -26,7 +26,7 @@
 
   "gui.turnkey_factory.machine.set_center": "Center",
   "gui.turnkey_factory.machine.set_center.tooltip": "Makes this block the shared reference point for adjacent leveler/texturizer/lamplighter machines (their work area recenters on it).",
-  "gui.turnkey_factory.machine.work_area": "Work Area",
+  "gui.turnkey_factory.machine.materials": "Materials",
 
   "gui.turnkey_factory.theme.stone": "Stone",
   "gui.turnkey_factory.theme.brick": "Brick",
@@ -105,7 +105,7 @@
   "gui.turnkey_factory.lamplighter.spacing": "Spacing",
   "gui.turnkey_factory.lamplighter.start": "Start",
   "gui.turnkey_factory.lamplighter.stop": "Stop",
-  "gui.turnkey_factory.lamplighter.materials": "Materials (%s lamps planned, 1 each)",
+  "gui.turnkey_factory.lamplighter.materials": "%s lamps planned — 1 torch, 1 ingot and 1 log each",
   "gui.turnkey_factory.lamplighter.any_log": "Any log (wood species picked automatically)",
   "gui.turnkey_factory.lamplighter.status.working": "Lighting… %s remaining",
   "gui.turnkey_factory.lamplighter.status.missing_material": "Paused: needs torches/iron ingots/logs in linked inventories",
