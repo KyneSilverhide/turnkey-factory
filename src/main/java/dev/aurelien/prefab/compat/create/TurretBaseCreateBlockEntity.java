@@ -73,15 +73,25 @@ public class TurretBaseCreateBlockEntity extends KineticBlockEntity implements M
     private static final float SPEED_OVERDRIVE = 200f;
 
     /**
-     * Intervalle entre deux tirs (ticks), indexé par {@link #cadenceTier}. Au palier maximal, 2 ticks =
-     * 10 tirs/s, soit un tir quasi continu. L'entrée d'index 0 (« réseau à l'arrêt ») ne sert JAMAIS de
-     * cadence de tir réelle — {@link #tryConsumeRotation} bloque déjà le tir avant qu'un intervalle basé
-     * sur ce palier ait pu s'écouler ; elle ne fixe que le délai de nouvelle tentative pendant la panne
-     * (cf. {@code TurretCombat#tryFire}, « panne d'énergie »). Elle reprend {@link
+     * Intervalle entre deux tirs (ticks), indexé par {@link #cadenceTier} : 1 / 1,7 / 2,5 / 4 tirs par
+     * seconde, soit environ un facteur 1,5 entre paliers voisins — assez pour que monter le régime se
+     * sente, sans marche brutale.
+     * <p>
+     * Le palier maximal valait 2 ticks (10 tirs/s) jusqu'à ce que le lance-flammes rende ce chiffre
+     * concret : à 125 mB le tir, un réservoir plein partait en 6 secondes. La cadence a été tempérée
+     * <strong>ici</strong>, dans la table commune, et non par un plancher propre au lance-flammes :
+     * 10 tirs/s consommait aussi 600 pépites à la minute côté mitrailleuse, c'était le palier lui-même
+     * qui était démesuré, pas la munition qu'on venait de lui donner. Un plein tient maintenant 16 s
+     * à fond, et l'alimentation par tuyau reste ce qui permet de tirer sans fin.
+     * <p>
+     * L'entrée d'index 0 (« réseau à l'arrêt ») ne sert JAMAIS de cadence de tir réelle —
+     * {@link #tryConsumeRotation} bloque déjà le tir avant qu'un intervalle basé sur ce palier ait pu
+     * s'écouler ; elle ne fixe que le délai de nouvelle tentative pendant la panne (cf.
+     * {@code TurretCombat#tryFire}, « panne d'énergie »). Elle reprend {@link
      * TurretCombat#DEFAULT_FIRE_INTERVAL} par simple commodité (une valeur de repli qui existe déjà),
      * pas parce qu'un réseau arrêté tirerait à 1 tir/s — ne pas la lire comme un vrai palier de cadence.
      */
-    private static final int[] FIRE_INTERVAL_BY_TIER = {TurretCombat.DEFAULT_FIRE_INTERVAL, 20, 10, 5, 2};
+    private static final int[] FIRE_INTERVAL_BY_TIER = {TurretCombat.DEFAULT_FIRE_INTERVAL, 20, 12, 8, 5};
 
     private static final String[] CADENCE_KEYS = {
             "gui.turnkey_factory.turret.cadence.none",

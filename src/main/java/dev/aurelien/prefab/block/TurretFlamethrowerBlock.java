@@ -41,9 +41,10 @@ public class TurretFlamethrowerBlock extends TurretWeaponBlock {
      * {@code TurretBaseBlockEntity#TICKS_PER_SHOT}) : « une unité de combustible = 8 tirs » est la
      * même règle des deux côtés, au lieu de deux barèmes sans rapport.
      * <p>
-     * Conséquence assumée : à la cadence de base un plein tient une minute, et sur un socle Create
-     * poussé au maximum il part en six secondes. Le seau à la main est un dépannage ; un
-     * lance-flammes qui tourne vraiment veut un tuyau.
+     * Conséquence assumée : à la cadence de base un plein tient une minute, et une quinzaine de
+     * secondes sur un socle Create poussé au maximum (cf. {@code FIRE_INTERVAL_BY_TIER}, dont le
+     * palier haut a justement été tempéré une fois ce chiffre observé en jeu). Le seau à la main est
+     * un dépannage ; un lance-flammes qui tourne vraiment veut un tuyau.
      */
     public static final int LAVA_PER_SHOT = 125;
 
