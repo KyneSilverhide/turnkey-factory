@@ -2,6 +2,7 @@ package dev.aurelien.prefab.client;
 
 import dev.aurelien.prefab.block.TexturizerBlockEntity;
 import dev.aurelien.prefab.menu.TexturizerMenu;
+import dev.aurelien.prefab.network.SetCenterPayload;
 import dev.aurelien.prefab.network.SetTexturizerCoarseDirtPayload;
 import dev.aurelien.prefab.network.SetTexturizerPalettePayload;
 import dev.aurelien.prefab.network.SetTexturizerRadiusPayload;
@@ -17,17 +18,22 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+/**
+ * Disposition harmonisée avec Leveler/Lamplighter/Turret (cf. leurs javadocs de classe) : un en-tête de
+ * section générique ("Zone de travail"), une colonne outil séparée à droite (au lieu d'empiler tout en
+ * une seule colonne étroite), largeur 280 pour rester sous le plancher de 240 de haut garanti par
+ * Minecraft en échelle auto (cf. {@link TexturizerMenu} pour les positions de slots correspondantes).
+ */
 public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
     private static final int Y_HEADER = 6;
     private static final int Y_RADIUS = 20;
     /** Motif et parcelles gratuites partagent une seule rangée (deux demi-boutons) pour ne pas agrandir la fenêtre. */
     private static final int Y_TOGGLES = 46;
-    private static final int Y_INFO = 72;
-    private static final int Y_TOOLS_LABEL = 96;
-    private static final int Y_ACTION_ROW = 106;
+    private static final int Y_INFO = 70;
+    private static final int Y_ACTION_ROW = 84;
     /** Départ de la checklist (montre toutes les conditions à la fois, cf. TurretScreen) ; le texte de
      *  statut en prose est dessiné juste en dessous, à la position renvoyée par {@link #drawChecklist}. */
-    private static final int Y_STATUS = 132;
+    private static final int Y_STATUS = 108;
     private static final int LINE_H = 10; // hauteur de ligne pour le texte multi-lignes (info/statut)
     private static final int CHECKLIST_GAP = 6;
     private static final int COLOR_OK = 0x4FA83D;
@@ -40,8 +46,11 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
     private static final int MAX_X = 146;
     private static final int TOGGLE_W = 76; // largeur d'un demi-bouton sur la rangée Y_TOGGLES
     private static final int TOGGLE_GAP = 4;
+    private static final int TOGGLE_BTN_W = 130;
+    private static final int CENTER_BTN_W = 70;
+    private static final int CENTER_BTN_GAP = 8;
     /** Position X du slot outil / libellé de son nom, cohérente avec {@link TexturizerMenu}. */
-    static final int TOOL_X = 180;
+    static final int TOOL_X = 240;
 
     private int radius;
     private boolean coarseDirt;
@@ -52,8 +61,8 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
 
     public TexturizerScreen(TexturizerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
-        this.imageWidth = 210;
-        this.imageHeight = 244;
+        this.imageWidth = 280;
+        this.imageHeight = 232;
     }
 
     private TexturizerBlockEntity be() {
@@ -113,7 +122,13 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
             TexturizerBlockEntity current = be();
             boolean next = current == null || !current.active();
             PacketDistributor.sendToServer(new TexturizerActionPayload(menu.pos(), next));
-        }).bounds(leftPos + LABEL_X, topPos + Y_ACTION_ROW, 130, 20).build());
+        }).bounds(leftPos + LABEL_X, topPos + Y_ACTION_ROW, TOGGLE_BTN_W, 20).build());
+
+        addRenderableWidget(Button.builder(Component.translatable("gui.turnkey_factory.machine.set_center"), b -> {
+            PacketDistributor.sendToServer(new SetCenterPayload(menu.pos()));
+        }).bounds(leftPos + LABEL_X + TOGGLE_BTN_W + CENTER_BTN_GAP, topPos + Y_ACTION_ROW, CENTER_BTN_W, 20)
+                .tooltip(Tooltip.create(Component.translatable("gui.turnkey_factory.machine.set_center.tooltip")))
+                .build());
     }
 
     private void sendRadius() {
@@ -169,11 +184,13 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
         int lx = leftPos + LABEL_X;
         int vx = leftPos + VALUE_X;
 
-        g.drawString(font, Component.translatable("gui.turnkey_factory.texturizer.zone"), lx, topPos + Y_HEADER, 0xC0C0FF, false);
+        g.drawString(font, Component.translatable("gui.turnkey_factory.machine.work_area"), lx, topPos + Y_HEADER, 0xC0C0FF, false);
         int textY = topPos + Y_RADIUS + 6;
         g.drawString(font, Component.translatable("gui.turnkey_factory.texturizer.radius"), lx, textY, 0xFFFFFF, false);
         g.drawString(font, String.valueOf(radius), vx, textY, 0xFFE070, false);
 
+        // Pleine largeur : le slot outil (TOOL_X) ne descend que jusqu'à Y=40 (cf. TexturizerMenu), donc
+        // rien n'empiète sur l'info/la checklist/le statut qui commencent bien plus bas.
         int maxTextWidth = imageWidth - LABEL_X - 8;
 
         TexturizerBlockEntity be = be();
@@ -193,7 +210,7 @@ public class TexturizerScreen extends AbstractContainerScreen<TexturizerMenu> {
         Component toolsLabel = Component.translatable(currentPalette() == TexturizerBlockEntity.Palette.STONE
                 ? "gui.turnkey_factory.texturizer.tool.pickaxe"
                 : "gui.turnkey_factory.texturizer.tool.shovel");
-        g.drawString(font, toolsLabel, leftPos + TOOL_X - font.width(toolsLabel) / 2 + 9, topPos + Y_TOOLS_LABEL, 0xC0C0FF, false);
+        g.drawString(font, toolsLabel, leftPos + TOOL_X - font.width(toolsLabel) / 2 + 9, topPos + Y_HEADER, 0xC0C0FF, false);
 
         int statusY = topPos + Y_STATUS;
         if (be != null) {

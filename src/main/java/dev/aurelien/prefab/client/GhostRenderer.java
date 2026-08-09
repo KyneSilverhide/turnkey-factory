@@ -152,7 +152,8 @@ public class GhostRenderer {
             // Contour plat à la hauteur cible (pas une grille case par case : jusqu'à (2×64+1)² cellules
             // à portée max, bien trop pour un rendu par bloc chaque frame) — montre la portée choisie
             // tout de suite, comme le texturiseur/l'allumeur de réverbères.
-            BlockPos originAtTarget = new BlockPos(be.getBlockPos().getX(), be.targetY(), be.getBlockPos().getZ());
+            BlockPos anchor = be.originPos();
+            BlockPos originAtTarget = new BlockPos(anchor.getX(), be.targetY(), anchor.getZ());
             renderRangeBoundary(pose, vc, originAtTarget, be.range(), 0.3f, 0.9f, 1.0f, 0.6f);
             // Une boîte rouge par bloc qui sera retiré (fantôme, plafonné côté serveur).
             for (BlockPos p : be.removalPreview()) {
@@ -165,7 +166,7 @@ public class GhostRenderer {
             if (be.isRemoved()) continue; // le cache n'est rafraîchi que toutes les RESCAN_INTERVAL frames
             // Contour plat au niveau du bloc : montre la portée MAXIMALE choisie tout de suite, sans
             // attendre que le plan mette des cellules en file (utile même à l'arrêt, dès le réglage).
-            renderRangeBoundary(pose, vc, be.getBlockPos(), be.radius(), 0.7f, 0.3f, 1.0f, 0.8f);
+            renderRangeBoundary(pose, vc, be.originPos(), be.radius(), 0.7f, 0.3f, 1.0f, 0.8f);
             // Une boîte violette par cellule de sol à venir retexturer (fantôme, plafonné côté serveur).
             for (BlockPos p : be.preview()) {
                 AABB cell = new AABB(p).deflate(0.02);
@@ -175,7 +176,7 @@ public class GhostRenderer {
 
         for (LamplighterBlockEntity be : lamplighters) {
             if (be.isRemoved()) continue; // le cache n'est rafraîchi que toutes les RESCAN_INTERVAL frames
-            renderRangeBoundary(pose, vc, be.getBlockPos(), be.range(), 1.0f, 0.85f, 0.3f, 0.8f);
+            renderRangeBoundary(pose, vc, be.originPos(), be.range(), 1.0f, 0.85f, 0.3f, 0.8f);
         }
 
         // Flush du tampon "vc" AVANT de démarrer le second (RenderType différent) : getBuffer() sur un

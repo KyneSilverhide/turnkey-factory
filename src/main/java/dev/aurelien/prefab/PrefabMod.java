@@ -8,6 +8,7 @@ import dev.aurelien.prefab.network.SetLamplighterRangePayload;
 import dev.aurelien.prefab.network.SetLamplighterSpacingPayload;
 import dev.aurelien.prefab.network.SetLevelerRangePayload;
 import dev.aurelien.prefab.network.SetLevelerTargetPayload;
+import dev.aurelien.prefab.network.SetCenterPayload;
 import dev.aurelien.prefab.network.SetOffsetPayload;
 import dev.aurelien.prefab.network.SetStylePayload;
 import dev.aurelien.prefab.network.SetTexturizerCoarseDirtPayload;
@@ -68,5 +69,6 @@ public class PrefabMod {
         registrar.playToServer(LamplighterActionPayload.TYPE, LamplighterActionPayload.STREAM_CODEC, LamplighterActionPayload::handle);
         registrar.playToServer(SetTurretRangePayload.TYPE, SetTurretRangePayload.STREAM_CODEC, SetTurretRangePayload::handle);
         registrar.playToServer(SetTurretTargetsPayload.TYPE, SetTurretTargetsPayload.STREAM_CODEC, SetTurretTargetsPayload::handle);
+        registrar.playToServer(SetCenterPayload.TYPE, SetCenterPayload.STREAM_CODEC, SetCenterPayload::handle);
     }
 }

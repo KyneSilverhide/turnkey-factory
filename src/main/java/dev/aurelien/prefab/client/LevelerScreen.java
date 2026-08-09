@@ -3,10 +3,12 @@ package dev.aurelien.prefab.client;
 import dev.aurelien.prefab.block.LevelerBlockEntity;
 import dev.aurelien.prefab.menu.LevelerMenu;
 import dev.aurelien.prefab.network.LevelerActionPayload;
+import dev.aurelien.prefab.network.SetCenterPayload;
 import dev.aurelien.prefab.network.SetLevelerRangePayload;
 import dev.aurelien.prefab.network.SetLevelerTargetPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
@@ -110,6 +112,14 @@ public class LevelerScreen extends AbstractContainerScreen<LevelerMenu> {
             boolean next = current == null || !current.active();
             PacketDistributor.sendToServer(new LevelerActionPayload(menu.pos(), next));
         }).bounds(leftPos + LABEL_X, topPos + Y_ACTION_ROW, 130, 20).build());
+
+        // À droite du bouton Démarrer/Arrêter, sur la même rangée : la colonne pelle/pioche (TOOLS_X)
+        // n'y descend qu'à partir de Y=52/74, bien au-dessus — pas de conflit à Y_ACTION_ROW.
+        addRenderableWidget(Button.builder(Component.translatable("gui.turnkey_factory.machine.set_center"), b -> {
+            PacketDistributor.sendToServer(new SetCenterPayload(menu.pos()));
+        }).bounds(leftPos + LABEL_X + 136, topPos + Y_ACTION_ROW, 70, 20)
+                .tooltip(Tooltip.create(Component.translatable("gui.turnkey_factory.machine.set_center.tooltip")))
+                .build());
     }
 
     private void sendRange() {

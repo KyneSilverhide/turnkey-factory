@@ -3,10 +3,12 @@ package dev.aurelien.prefab.client;
 import dev.aurelien.prefab.block.LamplighterBlockEntity;
 import dev.aurelien.prefab.menu.LamplighterMenu;
 import dev.aurelien.prefab.network.LamplighterActionPayload;
+import dev.aurelien.prefab.network.SetCenterPayload;
 import dev.aurelien.prefab.network.SetLamplighterRangePayload;
 import dev.aurelien.prefab.network.SetLamplighterSpacingPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -106,6 +108,15 @@ public class LamplighterScreen extends AbstractContainerScreen<LamplighterMenu> 
             boolean next = current == null || !current.active();
             PacketDistributor.sendToServer(new LamplighterActionPayload(menu.pos(), next));
         }).bounds(leftPos + LABEL_X, topPos + Y_ACTION_ROW, 130, 20).build());
+
+        // Sur la rangée Portée (Y_RANGE) plutôt qu'à côté du bouton Démarrer/Arrêter : la colonne
+        // matériaux (MATERIALS_X=150) commence dès Y_ACTION_ROW, mais laisse toute la largeur libre à
+        // droite du bouton Max à Y_RANGE — bien plus de place ici (fenêtre large, 280 de large).
+        addRenderableWidget(Button.builder(Component.translatable("gui.turnkey_factory.machine.set_center"), b -> {
+            PacketDistributor.sendToServer(new SetCenterPayload(menu.pos()));
+        }).bounds(leftPos + MAX_X + 38, topPos + Y_RANGE, 90, 20)
+                .tooltip(Tooltip.create(Component.translatable("gui.turnkey_factory.machine.set_center.tooltip")))
+                .build());
     }
 
     private void sendRange() {

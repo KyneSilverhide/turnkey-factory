@@ -60,7 +60,7 @@ import java.util.Set;
  * exigé par la palette active (durabilité par bloc) et exige un inventaire lié pour démarrer, exactement
  * comme la niveleuse.
  */
-public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, Container {
+public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, Container, CenterableMachine {
     public static final int MIN_RADIUS = 2;
     public static final int MAX_RADIUS = 64;
     public static final int DEFAULT_RADIUS = 8;
@@ -134,6 +134,9 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
 
     private final NonNullList<ItemStack> items = NonNullList.withSize(1, ItemStack.EMPTY);
     private final List<BlockPos> linked = new ArrayList<>();
+    /** Cf. {@link CenterableMachine} : {@code null} = cette machine est sa propre référence géométrique. */
+    @Nullable
+    private BlockPos centerPos;
     /**
      * Positions déjà converties par le motif terre (persisté, jamais synchronisé au client — cf.
      * {@link #getUpdateTag}). Le motif terre inclut la terre nue elle-même parmi ses 4 variantes cibles,
@@ -208,6 +211,18 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
         return Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, v));
     }
 
+    // ----- CenterableMachine -----
+
+    @Override
+    @Nullable
+    public BlockPos centerPos() { return centerPos; }
+
+    @Override
+    public void setCenterPos(@Nullable BlockPos pos) {
+        this.centerPos = pos;
+        onConfigChanged();
+    }
+
     /** La config a changé : la file en cours ne correspond plus à la zone → on la jette et on recalcule tout de suite. */
     private void onConfigChanged() {
         queue.clear();
@@ -237,7 +252,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
         queue.clear();
         preview.clear();
 
-        BlockPos origin = getBlockPos();
+        BlockPos origin = originPos();
         int ox = origin.getX();
         int oz = origin.getZ();
         int seedY = origin.getY() - 1; // « il commence sur le bloc en dessous »
@@ -254,7 +269,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
         List<BlockPos> ordered = new ArrayList<>();
         while (!frontier.isEmpty() && ordered.size() < maxCells) {
             Candidate c = frontier.poll();
-            Integer surfaceY = findSurfaceY(server, c.x(), c.z(), c.refY(), p, origin, palette);
+            Integer surfaceY = findSurfaceY(server, c.x(), c.z(), c.refY(), p, palette);
             if (surfaceY == null) continue; // pas de sol naturel accessible ici : on ne propage pas plus loin
 
             BlockPos pos = new BlockPos(c.x(), surfaceY, c.z());
@@ -288,28 +303,28 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
      * le plus haut dont le dessus est ouvert (air ou remplaçable) — la « surface » de cette colonne.
      * Renvoie {@code null} si rien de tel n'existe dans la fenêtre : la colonne est alors ignorée sans
      * propager, ce qui épouse les petites pentes tout en arrêtant la propagation sur une vraie falaise,
-     * un trou ou un bloc posé par le joueur. {@code self} (la position du texturiseur) compte comme
-     * « ouvert » : sans ça, la colonne de départ — juste sous la machine — échouait toujours, puisque
-     * la case au-dessus de son propre sol est occupée par la machine elle-même. Accepter aussi les
-     * cellules qui SONT un bloc du motif (cf. {@link #isPaletteBlock}) comme sol « marchable » est
-     * indispensable : sinon, une fois le disque intérieur fini, il forme un mur infranchissable qui
-     * empêche toute extension ultérieure du rayon d'atteindre les nouvelles cellules au-delà. Ce test
-     * reste volontairement basé sur l'état RÉEL du bloc (jamais sur {@link #dirtTexturedCells}) : sinon
-     * un trou creusé après coup dans une case déjà convertie serait pris pour du sol marchable et la
-     * propagation franchirait le trou au lieu de s'y arrêter.
+     * un trou ou un bloc posé par le joueur. Une {@link CenterableMachine} au-dessus (le texturiseur
+     * lui-même, ou une machine voisine centrée sur lui — cf. {@link #originPos()}) compte comme
+     * « ouvert » : sans ça, la colonne de départ — juste sous une machine — échouait toujours, puisque
+     * la case au-dessus de son propre sol est occupée par un bloc qui n'est ni air ni remplaçable.
+     * Accepter aussi les cellules qui SONT un bloc du motif (cf. {@link #isPaletteBlock}) comme sol
+     * « marchable » est indispensable : sinon, une fois le disque intérieur fini, il forme un mur
+     * infranchissable qui empêche toute extension ultérieure du rayon d'atteindre les nouvelles cellules
+     * au-delà. Ce test reste volontairement basé sur l'état RÉEL du bloc (jamais sur
+     * {@link #dirtTexturedCells}) : sinon un trou creusé après coup dans une case déjà convertie serait
+     * pris pour du sol marchable et la propagation franchirait le trou au lieu de s'y arrêter.
      */
     @Nullable
-    private Integer findSurfaceY(ServerLevel server, int x, int z, int refY, BlockPos.MutableBlockPos p, BlockPos self, Palette palette) {
+    private Integer findSurfaceY(ServerLevel server, int x, int z, int refY, BlockPos.MutableBlockPos p, Palette palette) {
         for (int y = refY + STEP_WINDOW; y >= refY - STEP_WINDOW; y--) {
             p.set(x, y, z);
             if (!server.isLoaded(p)) continue;
             BlockState state = server.getBlockState(p);
             if (!NaturalTerrain.isSurfaceGround(state) && !isPaletteBlock(state, palette)) continue;
             p.set(x, y + 1, z);
-            if (p.getX() == self.getX() && p.getY() == self.getY() && p.getZ() == self.getZ()) return y;
             if (!server.isLoaded(p)) continue;
             BlockState above = server.getBlockState(p);
-            if (isClearableAbove(above)) return y;
+            if (isClearableAbove(above) || server.getBlockEntity(p) instanceof CenterableMachine) return y;
         }
         return null;
     }
@@ -360,6 +375,14 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
 
     public void serverTick() {
         if (!(level instanceof ServerLevel server)) return;
+
+        // Auto-réparation du centre (cf. CenterableMachine#originPos) : le bloc désigné a disparu depuis
+        // (cassé) → on redevient sa propre référence. Simple effacement de champ, sans recalcul immédiat
+        // du plan : le prochain computePlan (ci-dessous, ou la repasse périodique plus bas) le fera avec
+        // la bonne origine.
+        if (centerPos != null && !(server.getBlockEntity(centerPos) instanceof CenterableMachine)) {
+            centerPos = null;
+        }
 
         if (!planComputed) {
             computePlan(server);
@@ -610,6 +633,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
         tag.putBoolean("active", active);
         tag.putLongArray("linked", linked.stream().mapToLong(BlockPos::asLong).toArray());
         tag.putLongArray("dirtTexturedCells", dirtTexturedCells.stream().mapToLong(Long::longValue).toArray());
+        if (centerPos != null) tag.putLong("centerPos", centerPos.asLong());
         ContainerHelper.saveAllItems(tag, items, registries);
     }
 
@@ -635,6 +659,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
         for (long packed : tag.getLongArray("dirtTexturedCells")) {
             dirtTexturedCells.add(packed);
         }
+        centerPos = tag.contains("centerPos") ? BlockPos.of(tag.getLong("centerPos")) : null;
         ContainerHelper.loadAllItems(tag, items, registries);
 
         // transitoire (présent uniquement dans les paquets réseau)

@@ -24,6 +24,10 @@
   "gui.turnkey_factory.axis_y": "Y",
   "gui.turnkey_factory.axis_z": "Z",
 
+  "gui.turnkey_factory.machine.set_center": "Center",
+  "gui.turnkey_factory.machine.set_center.tooltip": "Makes this block the shared reference point for adjacent leveler/texturizer/lamplighter machines (their work area recenters on it).",
+  "gui.turnkey_factory.machine.work_area": "Work Area",
+
   "gui.turnkey_factory.theme.stone": "Stone",
   "gui.turnkey_factory.theme.brick": "Brick",
   "gui.turnkey_factory.roof.flat": "Flat",
@@ -49,7 +53,6 @@
   "gui.turnkey_factory.controller.status.site_obstructed": "Clear the site before building",
   "gui.turnkey_factory.controller.status.ready": "Ready to build",
 
-  "gui.turnkey_factory.leveler.zone": "Range",
   "gui.turnkey_factory.leveler.range": "Range",
   "gui.turnkey_factory.leveler.max": "Max",
   "gui.turnkey_factory.leveler.target_height": "Height",
@@ -71,7 +74,6 @@
   "gui.turnkey_factory.leveler.checklist.pickaxe": "Pickaxe",
   "gui.turnkey_factory.leveler.checklist.fill": "Fill",
 
-  "gui.turnkey_factory.texturizer.zone": "Radius",
   "gui.turnkey_factory.texturizer.radius": "Radius",
   "gui.turnkey_factory.texturizer.max": "Max",
   "gui.turnkey_factory.texturizer.tool.pickaxe": "Pickaxe",
@@ -98,8 +100,7 @@
   "gui.turnkey_factory.texturizer.checklist.tool": "Tool",
   "gui.turnkey_factory.texturizer.checklist.material": "Material",
 
-  "gui.turnkey_factory.lamplighter.zone": "Range",
-  "gui.turnkey_factory.lamplighter.range": "Range",
+  "gui.turnkey_factory.lamplighter.range": "Radius",
   "gui.turnkey_factory.lamplighter.max": "Max",
   "gui.turnkey_factory.lamplighter.spacing": "Spacing",
   "gui.turnkey_factory.lamplighter.start": "Start",

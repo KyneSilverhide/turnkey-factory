@@ -45,7 +45,7 @@ import java.util.List;
  * n'est pas du terrain naturel ({@link NaturalTerrain#isNaturalGround}) ni un arbre (troncs et
  * feuilles) : les constructions du joueur et la végétation ligneuse sont protégées.
  */
-public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Container {
+public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Container, CenterableMachine {
     public static final int MIN_RANGE = 4;
     public static final int MAX_RANGE = 64;
     public static final int DEFAULT_RANGE = 8;
@@ -85,6 +85,9 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
 
     private final NonNullList<ItemStack> items = NonNullList.withSize(2, ItemStack.EMPTY);
     private final List<BlockPos> linked = new ArrayList<>();
+    /** Cf. {@link CenterableMachine} : {@code null} = cette machine est sa propre référence géométrique. */
+    @Nullable
+    private BlockPos centerPos;
 
     private record LevelOp(BlockPos pos, boolean fill) {}
     private final ArrayDeque<LevelOp> queue = new ArrayDeque<>();
@@ -137,19 +140,31 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
         syncToClient();
     }
 
-    /** Hauteur cible en Y monde (bloc lui-même + décalage réglable). */
+    /** Hauteur cible en Y monde (centre du groupe + décalage réglable, cf. {@link #originPos()}). */
     public int targetY() {
-        return getBlockPos().getY() + targetOffsetY;
+        return originPos().getY() + targetOffsetY;
     }
 
     /**
-     * Bornes de l'empreinte (en coordonnées monde), carré centré sur le bloc lui-même — même
+     * Bornes de l'empreinte (en coordonnées monde), carré centré sur {@link #originPos()} — même
      * convention que le texturiseur/l'allumeur de réverbères (portée réglable, {@link #MAX_RANGE}).
      */
-    public int footprintMinX() { return getBlockPos().getX() - range; }
-    public int footprintMaxX() { return getBlockPos().getX() + range; }
-    public int footprintMinZ() { return getBlockPos().getZ() - range; }
-    public int footprintMaxZ() { return getBlockPos().getZ() + range; }
+    public int footprintMinX() { return originPos().getX() - range; }
+    public int footprintMaxX() { return originPos().getX() + range; }
+    public int footprintMinZ() { return originPos().getZ() - range; }
+    public int footprintMaxZ() { return originPos().getZ() + range; }
+
+    // ----- CenterableMachine -----
+
+    @Override
+    @Nullable
+    public BlockPos centerPos() { return centerPos; }
+
+    @Override
+    public void setCenterPos(@Nullable BlockPos pos) {
+        this.centerPos = pos;
+        onConfigChanged();
+    }
 
     public int fillDepth() { return fillDepth; }
 
@@ -243,6 +258,12 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
                 for (int y = target + SCAN_UP; y >= target; y--) {
                     p.set(x, y, z);
                     if (!server.isLoaded(p)) continue;
+                    // Le carré est désormais centré sur originPos() (cf. CenterableMachine), donc la
+                    // colonne du centre ou d'une machine voisine peut se retrouver DANS le plan (l'exclusion
+                    // ci-dessus ne couvre que la propre colonne de CETTE niveleuse) : on s'arrête net dès
+                    // qu'on croise une telle machine, sans creuser sous son support, exactement comme on le
+                    // fait déjà pour soi-même.
+                    if (server.getBlockEntity(p) instanceof CenterableMachine) break;
                     BlockState state = server.getBlockState(p);
                     if (state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS)) continue;
 
@@ -319,6 +340,14 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
 
     public void serverTick() {
         if (!(level instanceof ServerLevel server)) return;
+
+        // Auto-réparation du centre (cf. CenterableMachine#originPos) : le bloc désigné a disparu depuis
+        // (cassé) → on redevient sa propre référence. Simple effacement de champ, sans recalcul immédiat
+        // du plan : le prochain computePlan (ci-dessous, ou la repasse périodique plus bas) le fera avec
+        // la bonne origine.
+        if (centerPos != null && !(server.getBlockEntity(centerPos) instanceof CenterableMachine)) {
+            centerPos = null;
+        }
 
         // Premier tick après pose/chargement : calcule tout de suite l'aperçu (fantôme + estimation de
         // remblai), sans attendre un changement de config ou un démarrage.
@@ -564,6 +593,7 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
         tag.putInt("fillDepth", fillDepth);
         tag.putBoolean("active", active);
         tag.putLongArray("linked", linked.stream().mapToLong(BlockPos::asLong).toArray());
+        if (centerPos != null) tag.putLong("centerPos", centerPos.asLong());
         ContainerHelper.saveAllItems(tag, items, registries);
     }
 
@@ -586,6 +616,7 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
         for (long packed : tag.getLongArray("linked")) {
             linked.add(BlockPos.of(packed));
         }
+        centerPos = tag.contains("centerPos") ? BlockPos.of(tag.getLong("centerPos")) : null;
         ContainerHelper.loadAllItems(tag, items, registries);
 
         // transitoire (présent uniquement dans les paquets réseau)

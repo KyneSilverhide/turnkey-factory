@@ -58,7 +58,7 @@ import java.util.Set;
  * choisie détermine seulement quelle variante de fence/slab/trapdoor est posée, exactement comme
  * le texturiseur puise 1 cobblestone pour poser indifféremment gravier/andésite/pierre.
  */
-public class LamplighterBlockEntity extends BlockEntity implements MenuProvider {
+public class LamplighterBlockEntity extends BlockEntity implements MenuProvider, CenterableMachine {
     public static final int MIN_RANGE = 8;
     public static final int MAX_RANGE = 64;
     public static final int DEFAULT_RANGE = 24;
@@ -89,6 +89,9 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider 
 
     private final List<BlockPos> linked = new ArrayList<>();
     private final ArrayDeque<LampJob> queue = new ArrayDeque<>();
+    /** Cf. {@link CenterableMachine} : {@code null} = cette machine est sa propre référence géométrique. */
+    @Nullable
+    private BlockPos centerPos;
 
     private int status = STATUS_NO_LINK;
     private int queueSizeClient = 0;
@@ -150,6 +153,18 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider 
         return Math.max(MIN_SPACING, Math.min(MAX_SPACING, v));
     }
 
+    // ----- CenterableMachine -----
+
+    @Override
+    @Nullable
+    public BlockPos centerPos() { return centerPos; }
+
+    @Override
+    public void setCenterPos(@Nullable BlockPos pos) {
+        this.centerPos = pos;
+        onConfigChanged();
+    }
+
     private void onConfigChanged() {
         queue.clear();
         totalLamps = 0;
@@ -168,7 +183,7 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider 
     private void computePlan(ServerLevel server) {
         queue.clear();
 
-        BlockPos origin = getBlockPos();
+        BlockPos origin = originPos();
         int ox = origin.getX();
         int oz = origin.getZ();
         int seedY = origin.getY() - 1;
@@ -187,7 +202,7 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider 
         while (!frontier.isEmpty() && visitedCount < maxCells) {
             Candidate c = frontier.poll();
             visitedCount++;
-            Integer surfaceY = findSurfaceY(server, c.x(), c.z(), c.refY(), p, origin);
+            Integer surfaceY = findSurfaceY(server, c.x(), c.z(), c.refY(), p);
             if (surfaceY == null) continue;
 
             int dx = c.x() - ox;
@@ -225,13 +240,15 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider 
 
     /**
      * Identique au texturiseur (voir sa javadoc pour le détail de la fenêtre de suivi), avec deux
-     * ajouts : une colonne dont le dessus porte déjà notre muret est acceptée comme « sol ouvert »
-     * (sinon un lampadaire déjà bâti coupe la propagation et empêche le rayon de s'étendre au-delà,
-     * exactement le piège que documente {@code isFinishedTexture} côté texturiseur) ; et
-     * {@link #hasSolidGroundBelow} rejette tout support qui repose sur du vide (toit, plateforme).
+     * ajouts : une colonne dont le dessus porte déjà notre muret, OU une {@link CenterableMachine}
+     * (nous-mêmes ou une machine voisine centrée sur nous, cf. {@link #originPos()}), est acceptée comme
+     * « sol ouvert » (sinon un lampadaire déjà bâti — ou une machine adjacente — coupe la propagation et
+     * empêche le rayon de s'étendre au-delà, exactement le piège que documente {@code isFinishedTexture}
+     * côté texturiseur) ; et {@link #hasSolidGroundBelow} rejette tout support qui repose sur du vide
+     * (toit, plateforme).
      */
     @Nullable
-    private static Integer findSurfaceY(ServerLevel server, int x, int z, int refY, BlockPos.MutableBlockPos p, BlockPos self) {
+    private static Integer findSurfaceY(ServerLevel server, int x, int z, int refY, BlockPos.MutableBlockPos p) {
         for (int y = refY + STEP_WINDOW; y >= refY - STEP_WINDOW; y--) {
             p.set(x, y, z);
             if (!server.isLoaded(p)) continue;
@@ -239,12 +256,11 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider 
             if (!NaturalTerrain.isSurfaceGround(state)) continue;
 
             p.set(x, y + 1, z);
-            boolean isSelf = p.getX() == self.getX() && p.getY() == self.getY() && p.getZ() == self.getZ();
-            if (!isSelf) {
-                if (!server.isLoaded(p)) continue;
-                BlockState above = server.getBlockState(p);
-                if (!(above.isAir() || above.canBeReplaced() || above.is(Blocks.COBBLESTONE_WALL))) continue;
-            }
+            if (!server.isLoaded(p)) continue;
+            BlockState above = server.getBlockState(p);
+            boolean open = above.isAir() || above.canBeReplaced() || above.is(Blocks.COBBLESTONE_WALL)
+                    || server.getBlockEntity(p) instanceof CenterableMachine;
+            if (!open) continue;
 
             if (!hasSolidGroundBelow(server, x, y, z)) continue;
             return y;
@@ -324,6 +340,14 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider 
 
     public void serverTick() {
         if (!(level instanceof ServerLevel server)) return;
+
+        // Auto-réparation du centre (cf. CenterableMachine#originPos) : le bloc désigné a disparu depuis
+        // (cassé) → on redevient sa propre référence. Simple effacement de champ, sans recalcul immédiat
+        // du plan : le prochain computePlan (ci-dessous, ou la repasse périodique plus bas) le fera avec
+        // la bonne origine.
+        if (centerPos != null && !(server.getBlockEntity(centerPos) instanceof CenterableMachine)) {
+            centerPos = null;
+        }
 
         if (!planComputed) {
             computePlan(server);
@@ -549,6 +573,7 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider 
         tag.putInt("spacing", spacing);
         tag.putBoolean("active", active);
         tag.putLongArray("linked", linked.stream().mapToLong(BlockPos::asLong).toArray());
+        if (centerPos != null) tag.putLong("centerPos", centerPos.asLong());
     }
 
     @Override
@@ -562,6 +587,7 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider 
         for (long packed : tag.getLongArray("linked")) {
             linked.add(BlockPos.of(packed));
         }
+        centerPos = tag.contains("centerPos") ? BlockPos.of(tag.getLong("centerPos")) : null;
 
         // transitoire (présent uniquement dans les paquets réseau)
         if (tag.contains("status")) status = tag.getInt("status");

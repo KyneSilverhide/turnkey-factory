@@ -43,7 +43,8 @@ public class TexturizerMenu extends AbstractContainerMenu {
         this.pos = pos;
         this.access = ContainerLevelAccess.create(inv.player.level(), pos);
 
-        addSlot(new Slot(container, TOOL_SLOT, 180, 106) {
+        // Colonne outil à droite (TOOL_X, cf. TexturizerScreen), au-dessus de l'inventaire joueur.
+        addSlot(new Slot(container, TOOL_SLOT, 240, 22) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.is(requiredToolTag(inv.player.level()));
@@ -52,11 +53,11 @@ public class TexturizerMenu extends AbstractContainerMenu {
 
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(inv, col + row * 9 + 9, 9 + col * 18, 162 + row * 18));
+                addSlot(new Slot(inv, col + row * 9 + 9, 9 + col * 18, 146 + row * 18));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(inv, col, 9 + col * 18, 220));
+            addSlot(new Slot(inv, col, 9 + col * 18, 204));
         }
     }
 
