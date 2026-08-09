@@ -10,6 +10,7 @@
   "block.turnkey_factory.turret_flamethrower": "Lance-flammes",
   "block.turnkey_factory.turret_weapon.tooltip.base": "À poser sur un socle de tourelle",
   "block.turnkey_factory.turret_flamethrower.tooltip.lava": "Fonctionne à la lave : versez un seau sur le socle ou raccordez un tuyau (%s seaux max, %s mB par tir)",
+  "block.turnkey_factory.turret_flamethrower.tooltip.drain": "Casser le socle vide son réservoir — récupérez la lave avant de déplacer la tourelle",
   "block.turnkey_factory.turret_base_create.tooltip.shaft": "Connectez un arbre de transmission par le dessous ou des engrenages sur le côté",
   "block.turnkey_factory.turret_base_create.tooltip.checklist": "Nécessite une arme sur le socle, une vitesse suffisante, des munitions et un signal redstone pour tirer",
   "item.turnkey_factory.architect_blueprint": "Plan d'architecte",

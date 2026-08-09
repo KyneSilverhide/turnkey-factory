@@ -109,23 +109,32 @@ public class TurretTank {
 
     /**
      * Remplit (ou vide) le réservoir avec le conteneur de fluide tenu en main. Renvoie {@code false}
-     * si l'item tenu n'en est pas un, auquel cas l'appelant doit laisser filer l'interaction normale
-     * — c'est ce qui garde le clic droit à main nue (ou avec n'importe quel autre item) sur
-     * l'ouverture de l'interface.
+     * quand il n'y a rien à faire, auquel cas l'appelant doit laisser filer l'interaction normale —
+     * c'est ce qui garde le clic droit sur l'ouverture de l'interface.
      * <p>
-     * Le test « est-ce un conteneur ? » est fait des <strong>deux côtés</strong> et donne la même
-     * réponse, mais seul le serveur mute quoi que ce soit : le client ne doit pas se fabriquer un
-     * seau vide qu'un paquet viendrait reprendre une demi-seconde plus tard.
+     * « Rien à faire » couvre deux cas, et c'est le second qui compte :
+     * <ul>
+     *   <li>l'item tenu n'est pas un conteneur de fluide ;</li>
+     *   <li>c'en est un, mais aucun transfert n'est possible — seau plein contre réservoir plein,
+     *       seau vide contre réservoir vide. {@code FluidUtil.interactWithFluidHandler} renvoie
+     *       {@code false} dans ces cas-là (vérifié dans les sources NeoForge), et s'arrêter à
+     *       « c'est un conteneur » avalerait le clic sans rien afficher : un joueur avec un seau de
+     *       lave en main devant un réservoir plein n'arriverait tout simplement plus à ouvrir son
+     *       interface.</li>
+     * </ul>
+     * <p>
+     * Seul le serveur mute quoi que ce soit — le client ne doit pas se fabriquer un seau vide qu'un
+     * paquet viendrait reprendre. Côté client on répond donc « traité » dès qu'un conteneur est en
+     * main, sans savoir si le transfert aboutira : c'est sans conséquence, parce que l'ouverture de
+     * l'interface est entièrement pilotée par le serveur ({@code openMenu}) et que la branche
+     * cliente de {@code useWithoutItem} ne fait rien. Au pire, une animation de bras en trop.
      */
     public static boolean interactWithHeldContainer(ItemStack held, Level level, BlockPos pos,
                                                     Player player, InteractionHand hand, @Nullable Direction side) {
         if (held.getCapability(Capabilities.FluidHandler.ITEM) == null) {
             return false;
         }
-        if (!level.isClientSide) {
-            FluidUtil.interactWithFluidHandler(player, hand, level, pos, side);
-        }
-        return true;
+        return level.isClientSide || FluidUtil.interactWithFluidHandler(player, hand, level, pos, side);
     }
 
     // ----- Persistance -----

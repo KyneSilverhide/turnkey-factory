@@ -10,6 +10,7 @@
   "block.turnkey_factory.turret_flamethrower": "Flamethrower",
   "block.turnkey_factory.turret_weapon.tooltip.base": "Must be placed on a turret base",
   "block.turnkey_factory.turret_flamethrower.tooltip.lava": "Runs on lava — pour a bucket onto the base or pipe it in (%s buckets max, %s mB per shot)",
+  "block.turnkey_factory.turret_flamethrower.tooltip.drain": "Breaking the base empties its tank — drain it before moving the turret",
   "block.turnkey_factory.turret_base_create.tooltip.shaft": "Connect a rotational shaft from below or use cogs on the sides",
   "block.turnkey_factory.turret_base_create.tooltip.checklist": "Needs a weapon on top, enough shaft speed, ammo, and a redstone signal to fire",
   "item.turnkey_factory.architect_blueprint": "Architect's Blueprint",

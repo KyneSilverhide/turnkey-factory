@@ -166,11 +166,20 @@ public class TurretFlamethrowerBlock extends TurretWeaponBlock {
         server.playSound(null, pos, SoundEvents.FIRE_AMBIENT, SoundSource.BLOCKS, 1.0f, 1.3f);
     }
 
-    /** Le carburant ne se devine ni au modèle ni à la recette — c'est la question qu'on se pose en premier. */
+    /**
+     * Le carburant ne se devine ni au modèle ni à la recette — c'est la question qu'on se pose en
+     * premier. La seconde ligne prévient que casser le socle vide le réservoir : c'est le
+     * comportement de <em>toute</em> l'énergie stockée d'un socle (la charge de charbon part déjà de
+     * la même façon, les tables de butin ne recopient aucune donnée de BlockEntity), mais huit seaux
+     * de lave qui disparaissent se remarquent bien plus qu'un compteur de tirs, et c'est justement
+     * en déplaçant sa tourelle qu'on le découvrirait.
+     */
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(Component.translatable("block.turnkey_factory.turret_flamethrower.tooltip.lava",
                 TurretTank.BUCKETS, LAVA_PER_SHOT).withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("block.turnkey_factory.turret_flamethrower.tooltip.drain")
+                .withStyle(ChatFormatting.DARK_GRAY));
     }
 }
