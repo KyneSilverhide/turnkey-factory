@@ -24,11 +24,13 @@ public class ModCreativeTabs {
                 output.accept(ModItems.LEVELER.get());
                 output.accept(ModItems.TEXTURIZER.get());
                 output.accept(ModItems.LAMPLIGHTER.get());
-                // Socles avant armes : c'est l'ordre dans lequel on les pose.
-                output.accept(ModItems.TURRET_BASE.get());
-                // Create-only : n'apparaît que si Create est chargé, cf. CreateKineticContent.
+                // Le socle avant l'arme : c'est l'ordre dans lequel on les pose. Un seul socle est
+                // jamais visible — le cinétique remplace celui à charbon dès que Create est chargé
+                // (cf. ModBlocks#TURRET_BASE), il n'y a donc pas de choix à faire pour le joueur.
                 if (CreateCompat.isLoaded()) {
                     output.accept(CreateKineticContent.TURRET_BASE_CREATE_ITEM.get());
+                } else {
+                    output.accept(ModItems.TURRET_BASE.get());
                 }
                 output.accept(ModItems.TURRET_MACHINEGUN.get());
                 output.accept(ModItems.ARCHITECT_BLUEPRINT.get());

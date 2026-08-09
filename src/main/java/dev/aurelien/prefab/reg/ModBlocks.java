@@ -67,6 +67,14 @@ public class ModBlocks {
     /**
      * Socle de tourelle à charbon : la machine, cube plein posé au sol (cf. {@link TurretBaseBlock}).
      * Son pendant cinétique vit dans compat/create, sous garde.
+     * <p>
+     * <strong>Effacé devant le socle cinétique quand Create est chargé</strong> : sa recette
+     * ({@code data/turnkey_factory/recipe/turret_base.json}) et son entrée d'onglet créatif (cf.
+     * {@code ModCreativeTabs}) sont alors désactivées — deux socles côte à côte, dont l'un ignore
+     * purement et simplement le réseau cinétique, n'offraient pas un choix mais un piège. Le bloc
+     * et son item restent malgré tout <strong>toujours</strong> enregistrés, pour exactement la
+     * raison détaillée dans {@code ModItems#COPPER_NUGGET} : un socle déjà posé (ou en coffre) dans
+     * un monde où Create vient d'être ajouté doit continuer d'exister et de fonctionner.
      */
     public static final DeferredBlock<TurretBaseBlock> TURRET_BASE = BLOCKS.registerBlock(
             "turret_base",
