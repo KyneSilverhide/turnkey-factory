@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ITurret;
 import dev.aurelien.prefab.block.TurretCombat;
+import dev.aurelien.prefab.block.TurretFlamethrowerBlock;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -49,8 +50,14 @@ public class TurretRenderer<T extends BlockEntity & ITurret> implements BlockEnt
     private static final float MIN_PITCH = -25f;
     private static final float MAX_PITCH = 65f;
 
-    private final ModelPart turntable;
-    private final ModelPart barrel;
+    /**
+     * Un sous-arbre par arme (cf. {@link TurretModel#TURNTABLE_FLAME}) : même layer, même texture,
+     * seul l'ensemble dessiné change. {@code turntable} porte le lacet, {@code barrel} le tangage.
+     */
+    private record WeaponParts(ModelPart turntable, ModelPart barrel) {}
+
+    private final WeaponParts machinegun;
+    private final WeaponParts flamethrower;
     private final ModelPart cog;
 
     /** État de visée par tourelle (le renderer est un singleton partagé par tous les blocs). */
@@ -63,9 +70,22 @@ public class TurretRenderer<T extends BlockEntity & ITurret> implements BlockEnt
 
     public TurretRenderer(BlockEntityRendererProvider.Context context) {
         ModelPart root = context.bakeLayer(TurretModel.LAYER);
-        this.turntable = root.getChild(TurretModel.TURNTABLE);
-        this.barrel = turntable.getChild(TurretModel.BARREL);
+        ModelPart gunTurntable = root.getChild(TurretModel.TURNTABLE);
+        this.machinegun = new WeaponParts(gunTurntable, gunTurntable.getChild(TurretModel.BARREL));
+        ModelPart flameTurntable = root.getChild(TurretModel.TURNTABLE_FLAME);
+        this.flamethrower = new WeaponParts(flameTurntable, flameTurntable.getChild(TurretModel.BARREL_FLAME));
         this.cog = root.getChild(TurretModel.COG);
+    }
+
+    /**
+     * L'arme montée est lue dans le monde à chaque frame (cf. {@link ITurret#weaponOn}) plutôt que
+     * synchronisée : le {@code BlockState} de l'arme est déjà répliqué au client, donc la réponse est
+     * gratuite et toujours à jour, y compris à l'instant où le joueur échange une arme pour l'autre.
+     */
+    private WeaponParts partsFor(Level level, T be) {
+        return ITurret.weaponOn(level, be.getBlockPos()) instanceof TurretFlamethrowerBlock
+                ? flamethrower
+                : machinegun;
     }
 
     @Override
@@ -80,9 +100,11 @@ public class TurretRenderer<T extends BlockEntity & ITurret> implements BlockEnt
         float yaw = Mth.rotLerp(partialTick, state.prevYaw, state.yaw);
         float pitch = Mth.lerp(partialTick, state.prevPitch, state.pitch);
 
+        WeaponParts parts = partsFor(level, be);
+
         poseStack.pushPose();
-        turntable.yRot = yaw * Mth.DEG_TO_RAD;
-        barrel.xRot = pitch * Mth.DEG_TO_RAD;
+        parts.turntable().yRot = yaw * Mth.DEG_TO_RAD;
+        parts.barrel().xRot = pitch * Mth.DEG_TO_RAD;
 
         // packedLight est échantillonné à la position du socle (cube opaque plein, donc lumière ~0
         // dedans) : l'arme est dessinée au-dessus, on réchantillonne au bloc du dessus — celui qu'elle
@@ -90,7 +112,7 @@ public class TurretRenderer<T extends BlockEntity & ITurret> implements BlockEnt
         int cannonLight = LevelRenderer.getLightColor(level, be.getBlockPos().above());
 
         VertexConsumer vertexConsumer = buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
-        turntable.render(poseStack, vertexConsumer, cannonLight, packedOverlay);
+        parts.turntable().render(poseStack, vertexConsumer, cannonLight, packedOverlay);
 
         // Engrenage Create : NaN = rien à dessiner (tourelle charbon), cf. ITurret#cogAngle. Ne pivote
         // pas avec le canon (pièce indépendante du turntable), sa vitesse vient du réseau cinétique.

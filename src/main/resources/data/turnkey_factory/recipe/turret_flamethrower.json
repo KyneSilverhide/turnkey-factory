@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "III",
+    "IBU"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "B": { "item": "minecraft:blaze_rod" },
+    "U": { "item": "minecraft:bucket" }
+  },
+  "result": {
+    "id": "turnkey_factory:turret_flamethrower",
+    "count": 1
+  }
+}

@@ -81,6 +81,11 @@ height at auto GUI scale), so screens grow horizontally, not vertically; and the
 never move) must start below the bottom of every side column. Menus hardcode the matching slot
 coordinates rather than importing `MachineScreen` — a menu is also built on a dedicated server.
 
+All five screens now use the same `PANEL_W`×`PANEL_H` (300×238) frame, so the content region is
+0..`INV_Y`. `TurretScreen` is the tightest against that ceiling: its two stacked gauges (power, then
+the lava tank when the mounted weapon consumes it) end at 150 of 152 available. Adding a row there
+means re-spacing, not appending.
+
 Registries live in `reg/` (`ModBlocks`, `ModItems`, `ModBlockEntities`, `ModMenus`, `ModCreativeTabs`),
 all `DeferredRegister`-based and registered from `PrefabMod`'s constructor. `PrefabModClient` registers
 client-only concerns (screens) via `@EventBusSubscriber(value = Dist.CLIENT)`.
@@ -122,6 +127,31 @@ state (ghost preview data, build progress, material availability) rides back on 
 `InventoryNetwork.rescan()` does a 6-directional BFS flood-fill from the machine to find connected
 `IItemHandler` inventories (chests, etc.); all three machines (Controller, Leveler, Texturizer) use this
 same mechanism to source materials, re-scanning periodically rather than only on placement/breakage.
+
+### Turret: base + weapon
+
+A turret is two blocks. The **base** is the machine — energy, redstone, linked inventories, the lava
+tank, targeting, settings, GUI — and exists in two variants that share no superclass
+(`TurretBaseBlockEntity` extends `BlockEntity`, the Create one extends `KineticBlockEntity`), so
+everything shared is *composed*: `TurretCombat` (targeting/line of sight/rate of fire) and
+`TurretTank` (8-bucket lava tank), both reached through the `ITurret` façade.
+
+The **weapon** on top is a stateless `Block` with no BlockEntity — its characteristics live in its
+*type*. `TurretWeaponBlock`'s default implementations *are* the machine gun; a new weapon subclasses
+it (cf. `TurretFlamethrowerBlock`). `TurretCombat` owns targeting and delegates the rest to the
+mounted weapon: where ammo comes from (`hasAmmo`/`consumeShot` — chest nuggets via `TurretAmmo`, or
+the base's lava tank), what a hit does (the `Shot` record carries damage + ignite + slowness, so
+`TurretCombat.applyHit` stays the only place that calls `hurt`), and what the shot looks and sounds
+like. Two consequences worth knowing before touching it: the "don't bother scanning for targets"
+short-circuit must go through `needsLinkedInventory()` and never test `linked` directly (a
+pipe-fed flamethrower legitimately has no chest), and the GUI resolves the mounted weapon
+client-side via `ITurret.weaponOn` — the weapon's `BlockState` is already replicated, so per-weapon
+labels and gauges cost no network payload.
+
+The lava tank is exposed as a plain NeoForge `Capabilities.FluidHandler.BLOCK` on both base
+BlockEntity types (registered in `PrefabMod#registerCapabilities`), which is what makes Create pipes
+work without a line of Create-specific code — and what makes bucket-filling and pipe-feeding
+identical with or without Create installed.
 
 ### Terrain safety heuristic
 

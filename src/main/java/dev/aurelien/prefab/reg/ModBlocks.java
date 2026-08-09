@@ -6,6 +6,7 @@ import dev.aurelien.prefab.block.LamplighterBlock;
 import dev.aurelien.prefab.block.LevelerBlock;
 import dev.aurelien.prefab.block.TexturizerBlock;
 import dev.aurelien.prefab.block.TurretBaseBlock;
+import dev.aurelien.prefab.block.TurretFlamethrowerBlock;
 import dev.aurelien.prefab.block.TurretWeaponBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -96,6 +97,22 @@ public class ModBlocks {
             TurretWeaponBlock::new,
             BlockBehaviour.Properties.of()
                     .mapColor(MapColor.METAL)
+                    .strength(3.5F)
+                    .noOcclusion()
+                    .requiresCorrectToolForDrops()
+    );
+
+    /**
+     * Lance-flammes : seconde arme, alimentée par le réservoir de lave du socle
+     * ({@link dev.aurelien.prefab.block.TurretTank}) plutôt que par des munitions en coffre. Mêmes
+     * propriétés que la mitrailleuse — c'est le même affût, dessiné par le même renderer, avec la
+     * même raison d'être {@code noOcclusion}.
+     */
+    public static final DeferredBlock<TurretFlamethrowerBlock> TURRET_FLAMETHROWER = BLOCKS.registerBlock(
+            "turret_flamethrower",
+            TurretFlamethrowerBlock::new,
+            BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.FIRE)
                     .strength(3.5F)
                     .noOcclusion()
                     .requiresCorrectToolForDrops()

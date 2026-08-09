@@ -32,7 +32,9 @@ public class ModCreativeTabs {
                 } else {
                     output.accept(ModItems.TURRET_BASE.get());
                 }
+                // Armes, de la plus généraliste à la plus spécialisée.
                 output.accept(ModItems.TURRET_MACHINEGUN.get());
+                output.accept(ModItems.TURRET_FLAMETHROWER.get());
                 output.accept(ModItems.ARCHITECT_BLUEPRINT.get());
                 output.accept(ModItems.CONTROL_CORE.get());
                 // Notre pépite de cuivre s'efface devant celle de Create quand il est chargé, comme sa

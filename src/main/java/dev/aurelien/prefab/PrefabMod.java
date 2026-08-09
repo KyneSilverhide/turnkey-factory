@@ -27,6 +27,8 @@ import dev.aurelien.prefab.reg.ModMenus;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
@@ -49,6 +51,27 @@ public class PrefabMod {
         }
 
         modBus.addListener(this::registerPayloads);
+        modBus.addListener(this::registerCapabilities);
+    }
+
+    /**
+     * Expose le réservoir de lave des socles de tourelle ({@code TurretTank}) comme un
+     * {@code IFluidHandler} de bloc. C'est la capability NeoForge standard : ça suffit à ce qu'un
+     * tuyau de Create s'y raccorde, sans une ligne de code spécifique à Create — d'où le fait que le
+     * lance-flammes fonctionne à l'identique avec ou sans lui.
+     * <p>
+     * Enregistrée pour <strong>toutes</strong> les faces (le contexte {@code Direction} est ignoré),
+     * y compris {@code null} : un tuyau doit pouvoir arriver par n'importe quel côté, et rien dans un
+     * socle ne justifie une entrée privilégiée.
+     */
+    private void registerCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.TURRET_BASE.get(),
+                (be, side) -> be.tank().handler());
+        // Même garde que ci-dessus : la ligne ne résout CreateKineticContent (donc KineticBlockEntity)
+        // que si Create est chargé.
+        if (CreateCompat.isLoaded()) {
+            CreateKineticContent.registerCapabilities(event);
+        }
     }
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {

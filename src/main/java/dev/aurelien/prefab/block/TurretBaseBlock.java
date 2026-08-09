@@ -2,7 +2,9 @@ package dev.aurelien.prefab.block;
 
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -54,6 +56,21 @@ public class TurretBaseBlock extends Block implements EntityBlock, ITurretBase {
                 turret.serverTick();
             }
         };
+    }
+
+    /**
+     * Un conteneur de fluide en main remplit (ou vide) le réservoir de lave au lieu d'ouvrir
+     * l'interface — cf. {@link TurretTank#interactWithHeldContainer}. Tout le reste retombe sur le
+     * comportement par défaut, qui délègue à {@link #useWithoutItem} : le clic droit avec une pioche
+     * ou une torche en main continue donc d'ouvrir le GUI, comme avant.
+     */
+    @Override
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+                                              Player player, InteractionHand hand, BlockHitResult hit) {
+        if (TurretTank.interactWithHeldContainer(stack, level, pos, player, hand, hit.getDirection())) {
+            return ItemInteractionResult.sidedSuccess(level.isClientSide);
+        }
+        return super.useItemOn(stack, state, level, pos, player, hand, hit);
     }
 
     @Override

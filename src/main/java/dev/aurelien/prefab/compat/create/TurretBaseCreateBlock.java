@@ -6,11 +6,14 @@ import com.simibubi.create.content.kinetics.base.KineticBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.ICogWheel;
 import dev.aurelien.prefab.block.ITurret;
 import dev.aurelien.prefab.block.ITurretBase;
+import dev.aurelien.prefab.block.TurretTank;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -99,6 +102,16 @@ public class TurretBaseCreateBlock extends KineticBlock implements EntityBlock, 
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(Component.translatable("block.turnkey_factory.turret_base_create.tooltip.shaft").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("block.turnkey_factory.turret_base_create.tooltip.checklist").withStyle(ChatFormatting.DARK_GRAY));
+    }
+
+    /** Cf. {@link dev.aurelien.prefab.block.TurretBaseBlock#useItemOn} — même remplissage au seau. */
+    @Override
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+                                              Player player, InteractionHand hand, BlockHitResult hit) {
+        if (TurretTank.interactWithHeldContainer(stack, level, pos, player, hand, hit.getDirection())) {
+            return ItemInteractionResult.sidedSuccess(level.isClientSide);
+        }
+        return super.useItemOn(stack, state, level, pos, player, hand, hit);
     }
 
     @Override

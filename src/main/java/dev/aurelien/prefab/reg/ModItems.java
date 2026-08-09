@@ -28,6 +28,9 @@ public class ModItems {
     public static final DeferredItem<BlockItem> TURRET_MACHINEGUN =
             ITEMS.registerSimpleBlockItem("turret_machinegun", ModBlocks.TURRET_MACHINEGUN);
 
+    public static final DeferredItem<BlockItem> TURRET_FLAMETHROWER =
+            ITEMS.registerSimpleBlockItem("turret_flamethrower", ModBlocks.TURRET_FLAMETHROWER);
+
     // Composants intermédiaires de la recette du bloc de contrôle.
     /** Plan d'architecte (papier + lapis) : la « mémoire de plan » du bloc de contrôle. */
     public static final DeferredItem<Item> ARCHITECT_BLUEPRINT = ITEMS.registerSimpleItem("architect_blueprint");

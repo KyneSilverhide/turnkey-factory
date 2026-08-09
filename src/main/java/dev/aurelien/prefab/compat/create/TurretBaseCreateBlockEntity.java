@@ -5,6 +5,7 @@ import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import dev.aurelien.prefab.block.ITurret;
 import dev.aurelien.prefab.block.TurretCombat;
+import dev.aurelien.prefab.block.TurretTank;
 import dev.aurelien.prefab.menu.TurretMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -92,6 +93,8 @@ public class TurretBaseCreateBlockEntity extends KineticBlockEntity implements M
 
     private final TurretCombat combat = new TurretCombat(this, this::tryConsumeRotation, this::notifyUpdate,
             this::onFired, this::fireIntervalTicks);
+    /** Réservoir de lave du socle : sert au lance-flammes, ignoré par les autres armes (cf. {@link TurretTank}). */
+    private final TurretTank tank = new TurretTank(this::notifyUpdate);
     private int fireSpikeTicksLeft = 0;
     /** Cf. {@link dev.aurelien.prefab.block.TurretBaseBlockEntity#pendingRedstoneSync} pour la raison d'être. */
     private boolean pendingRedstoneSync = true;
@@ -117,6 +120,7 @@ public class TurretBaseCreateBlockEntity extends KineticBlockEntity implements M
                 ITurret.syncRedstoneState(level, getBlockPos());
             }
             combat.serverTick(server);
+            tank.serverTick();
         }
     }
 
@@ -142,6 +146,11 @@ public class TurretBaseCreateBlockEntity extends KineticBlockEntity implements M
     @Override
     public boolean hasAmmo() {
         return combat.hasAmmo();
+    }
+
+    @Override
+    public TurretTank tank() {
+        return tank;
     }
 
     /** Enregistré une seule fois par {@link TurretBaseCreateBlock#setPlacedBy}. */
@@ -239,6 +248,7 @@ public class TurretBaseCreateBlockEntity extends KineticBlockEntity implements M
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.write(tag, registries, clientPacket);
         combat.save(tag);
+        tank.save(tag, registries);
         if (clientPacket) combat.saveTransient(tag);
     }
 
@@ -246,6 +256,7 @@ public class TurretBaseCreateBlockEntity extends KineticBlockEntity implements M
     protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.read(tag, registries, clientPacket);
         combat.load(tag);
+        tank.load(tag, registries);
         if (clientPacket) combat.loadTransient(tag);
     }
 

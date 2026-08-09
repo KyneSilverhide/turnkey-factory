@@ -34,14 +34,16 @@ public class TurretMenu extends AbstractContainerMenu {
         this.pos = pos;
         this.access = ContainerLevelAccess.create(inv.player.level(), pos);
 
-        // Inventaire centré dans le panneau de 210 de large : (210 - 9*18) / 2 = 24.
+        // Inventaire centré dans le panneau de 300 de large : (300 - 9*18) / 2 = 69. Ces valeurs
+        // dupliquent MachineScreen.INV_X/INV_Y/HOTBAR_Y, qui est côté client uniquement — un menu est
+        // construit aussi sur le serveur dédié et ne peut pas charger une classe d'écran.
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(inv, col + row * 9 + 9, 24 + col * 18, 144 + row * 18));
+                addSlot(new Slot(inv, col + row * 9 + 9, 69 + col * 18, 154 + row * 18));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(inv, col, 24 + col * 18, 202));
+            addSlot(new Slot(inv, col, 69 + col * 18, 212));
         }
     }
 

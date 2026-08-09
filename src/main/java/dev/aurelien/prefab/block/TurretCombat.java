@@ -1,32 +1,23 @@
 package dev.aurelien.prefab.block;
 
 import dev.aurelien.prefab.build.InventoryNetwork;
-import dev.aurelien.prefab.reg.ModItems;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.tags.TagKey;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
-import net.neoforged.neoforge.common.Tags;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -47,33 +38,15 @@ import java.util.function.IntSupplier;
  * effectivement réalisé (pas à chaque tentative) — utilisé par la variante Create pour déclencher un
  * pic de stress ponctuel, sans concept équivalent côté charbon (no-op là-bas).
  * <p>
- * Munitions : identiques pour les deux variantes (contrairement à l'énergie), donc gérées ici plutôt
- * que déléguées au propriétaire. Quatre paliers, du plus faible au plus fort (cf. {@link #ammoOf}) :
- * <table border="1">
- *   <caption>Paliers de munitions</caption>
- *   <tr><th>munition</th><th>dégâts</th><th>effet</th></tr>
- *   <tr><td>pépite de cuivre</td><td>×0,5</td><td>—</td></tr>
- *   <tr><td>pépite de fer</td><td>×1,0</td><td>—</td></tr>
- *   <tr><td>obus perforant</td><td>×2,0</td><td>—</td></tr>
- *   <tr><td>obus incendiaire</td><td>×2,0</td><td>enflamme 5 s</td></tr>
- * </table>
- * Le multiplicateur porte sur les dégâts de base de l'<em>arme montée</em>
- * ({@code TurretWeaponBlock#baseDamage}), relue à chaque tir : changer d'arme change la munition de
- * valeur sans rien recalculer ici. Les pépites sont reconnues par tag conventionnel
- * ({@code c:nuggets/iron} / {@link #NUGGETS_COPPER}) et non par item précis, donc celle de n'importe
- * quel mod fait office de munition, pas seulement la nôtre (cf. la javadoc de la constante).
+ * Munitions : <strong>déléguées à l'arme montée</strong> ({@link TurretWeaponBlock#hasAmmo} /
+ * {@link TurretWeaponBlock#consumeShot}), et non gérées ici, depuis qu'elles ne viennent plus
+ * forcément d'un coffre — la mitrailleuse puise des pépites dans les inventaires liés
+ * ({@link TurretAmmo}), le lance-flammes de la lave dans le réservoir du socle ({@link TurretTank}).
+ * Ce qui reste vrai des deux : rien n'est prélevé en avance, 1 munition par tir réussi, et une
+ * pénurie reporte le tir en conservant la cible, exactement comme une panne d'énergie.
  * <p>
- * Piochées dans les inventaires liés ({@link InventoryNetwork}, même flood-fill que les autres
- * machines) au moment du tir, jamais en avance : pas de jauge à charger, juste 1 munition consommée
- * par tir réussi. Si rien n'est disponible, le tir est reporté (cible conservée) — même comportement
- * qu'une panne d'énergie temporaire.
- * <p>
- * <strong>Ordre de consommation :</strong> celui des emplacements, pas un tirage au sort
- * ({@link InventoryNetwork#extractFirstEligible}). Le coffre se vide donc de haut à gauche vers le
- * bas à droite, et ranger ses munitions suffit à décider dans quel ordre elles partent — un tirage
- * pondéré par les quantités rendait l'obus perforant invisible dès qu'il côtoyait une grosse réserve
- * de pépites. La garantie ne vaut qu'<em>à l'intérieur</em> d'un inventaire : entre coffres, l'ordre
- * est celui de la découverte du flood-fill, qui n'a rien de visuel.
+ * L'aspect du tir (traînée de particules, son) vient lui aussi de l'arme — c'est ce qui distingue
+ * une rafale d'un jet de flammes sans que cette classe ait à connaître l'une ou l'autre.
  */
 public class TurretCombat {
     public static final int MIN_RANGE = 4;
@@ -97,23 +70,13 @@ public class TurretCombat {
 
     private static final int SCAN_INTERVAL = 10;
     private static final int LINK_SCAN_INTERVAL = 20;
-    private static final int TRACER_STEPS = 12;
 
     /**
-     * Munitions désignées par tag conventionnel et non par item précis : n'importe quelle pépite de
-     * cuivre est acceptée, quel que soit le mod qui la fournit (Create en ajoute une, comme plusieurs
-     * autres mods), et la nôtre est déclarée dans le même tag (cf. {@code data/c/tags/item/nuggets/copper.json}).
-     * {@code c:nuggets/copper} n'a pas de constante dans {@code Tags.Items} — le cuivre n'a pas de
-     * pépite vanilla en 1.21.1 — d'où la clé construite à la main, avec l'identifiant conventionnel
-     * que tout le monde utilise.
-     * <p>
-     * Seule la <em>clé</em> est statique, jamais l'appartenance : les tags sont vides tant que le
-     * datapack n'est pas chargé, donc toute lecture doit rester au moment du tick.
+     * Le socle possédant ce composant. Typé {@link ITurret} et non {@code BlockEntity} : les deux
+     * propriétaires en sont (cf. javadoc de classe), on n'a besoin ici que de sa position — et les
+     * hooks d'arme, eux, ont besoin d'atteindre son réservoir.
      */
-    private static final TagKey<Item> NUGGETS_COPPER =
-            ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "nuggets/copper"));
-
-    private final BlockEntity owner;
+    private final ITurret owner;
     private final BooleanSupplier tryConsumePower;
     private final Runnable syncToClient;
     private final Runnable onFired;
@@ -143,7 +106,7 @@ public class TurretCombat {
      *  au rythme de {@link #LINK_SCAN_INTERVAL}, pour refléter tout de suite le dernier nugget consommé. */
     private boolean hasAmmo = false;
 
-    public TurretCombat(BlockEntity owner, BooleanSupplier tryConsumePower, Runnable syncToClient,
+    public TurretCombat(ITurret owner, BooleanSupplier tryConsumePower, Runnable syncToClient,
                         Runnable onFired, IntSupplier fireIntervalTicks) {
         this.owner = owner;
         this.tryConsumePower = tryConsumePower;
@@ -200,13 +163,16 @@ public class TurretCombat {
             if (changed) syncToClient.run();
         }
 
-        // Sans inventaire lié, la tourelle n'a de toute façon ni munitions ni ravitaillement possible ;
-        // sans arme montée, elle n'a rien pour tirer. Dans les deux cas on évite de scanner/verrouiller
-        // des cibles pour rien (même esprit que le refus de démarrage des 3 autres machines à inventaire
-        // vide, cf. leur setActive) — sans toucher à `active`, qui doit rester le reflet fidèle du signal
-        // redstone (cf. ITurret#syncRedstoneState), pas une condition composite qui rendrait la case
-        // "redstone" de la checklist trompeuse.
-        if (!active || linked.isEmpty() || ITurret.weaponOn(server, owner.getBlockPos()) == null) {
+        // Sans arme montée, la tourelle n'a rien pour tirer ; sans inventaire lié elle n'a ni
+        // munitions ni ravitaillement possible — mais ça, c'est l'ARME qui le sait, pas nous : un
+        // lance-flammes alimenté par tuyau n'a besoin d'aucun coffre, et le tester ici sur `linked`
+        // le rendrait définitivement muet, sans rien dans la checklist pour l'expliquer. Dans les
+        // deux cas on évite de scanner/verrouiller des cibles pour rien (même esprit que le refus de
+        // démarrage des 3 autres machines à inventaire vide, cf. leur setActive) — sans toucher à
+        // `active`, qui doit rester le reflet fidèle du signal redstone (cf. ITurret#syncRedstoneState),
+        // pas une condition composite qui rendrait la case "redstone" de la checklist trompeuse.
+        TurretWeaponBlock weapon = ITurret.weaponOn(server, owner.getBlockPos());
+        if (!active || weapon == null || (linked.isEmpty() && weapon.needsLinkedInventory())) {
             return;
         }
 
@@ -230,13 +196,22 @@ public class TurretCombat {
         return Collections.unmodifiableList(linked);
     }
 
-    /** État "au moins un nugget disponible", exposé pour la checklist {@code TurretScreen}. */
+    /** État "de quoi tirer au moins une fois", exposé pour la checklist {@code TurretScreen}. */
     public boolean hasAmmo() {
         return hasAmmo;
     }
 
+    /**
+     * Ce que « avoir des munitions » veut dire dépend de l'arme montée (pépites dans un coffre,
+     * lave dans le réservoir…). Socle nu : on retombe sur les munitions solides, la seule réponse
+     * qui ait un sens quand rien ne dicte encore le carburant — la case « arme » de la checklist
+     * dit déjà, elle, qu'il manque l'essentiel.
+     */
     private boolean updateHasAmmo(ServerLevel server) {
-        boolean now = InventoryNetwork.countEligible(server, linked, TurretCombat::isAmmo) > 0;
+        TurretWeaponBlock weapon = ITurret.weaponOn(server, owner.getBlockPos());
+        boolean now = weapon != null
+                ? weapon.hasAmmo(server, owner, linked)
+                : TurretAmmo.hasAny(server, linked);
         if (now == hasAmmo) return false;
         hasAmmo = now;
         return true;
@@ -339,7 +314,7 @@ public class TurretCombat {
         // En panne de munitions : même traitement qu'une panne d'énergie, cible conservée. Sondage
         // non destructif volontaire : l'énergie se consomme entre les deux, et prélever la munition
         // d'abord obligerait à la remettre en cas de panne de courant.
-        if (InventoryNetwork.countEligible(server, linked, TurretCombat::isAmmo) <= 0) {
+        if (!weapon.hasAmmo(server, owner, linked)) {
             return;
         }
 
@@ -349,81 +324,36 @@ public class TurretCombat {
             return;
         }
 
-        Item ammo = InventoryNetwork.extractFirstEligible(server, linked, TurretCombat::isAmmo);
+        TurretWeaponBlock.Shot shot = weapon.consumeShot(server, owner, linked);
         // Course quasi impossible (rien ne s'intercale entre le sondage et ici dans le même tick,
         // sauf un handler qui refuserait l'extraction) : on préfère perdre le coup que tirer gratis.
-        if (ammo == null) {
+        if (shot == null) {
             return;
         }
         if (updateHasAmmo(server)) syncToClient.run();
 
-        Ammo kind = ammoOf(ammo);
-        if (kind == null) return; // inatteignable : isAmmo, donc ammoOf, vient de filtrer cet item
-
-        target.hurt(server.damageSources().magic(), weapon.baseDamage() * kind.damageMultiplier());
-        if (kind.igniteSeconds() > 0) target.igniteForSeconds(kind.igniteSeconds());
-        playFireSound(server);
-        spawnTracer(server, origin, targetPos);
+        applyHit(server, target, shot);
+        weapon.playFireSound(server, owner.getBlockPos());
+        weapon.spawnTrail(server, origin, targetPos);
         onFired.run();
     }
 
     /**
-     * Palier de munition : multiplicateur appliqué aux dégâts de base de l'arme montée, et durée
-     * d'embrasement de la cible ({@code 0} = aucun).
-     */
-    private record Ammo(float damageMultiplier, float igniteSeconds) {}
-
-    private static final Ammo TIER_COPPER = new Ammo(0.5f, 0f);
-    private static final Ammo TIER_IRON = new Ammo(1.0f, 0f);
-    private static final Ammo TIER_SLUG = new Ammo(2.0f, 0f);
-    /** Même impact que l'obus perforant : la poudre paie l'embrasement, pas des dégâts bruts. */
-    private static final Ammo TIER_INCENDIARY = new Ammo(2.0f, 5f);
-
-    /**
-     * Palier correspondant à {@code item}, ou {@code null} si ce n'est pas une munition. Les obus
-     * manufacturés sont reconnus par item précis (ce sont les nôtres), les pépites par tag
-     * conventionnel, pour que celles de n'importe quel mod fassent l'affaire. Le fer est testé avant
-     * le cuivre : un item exotique déclaré dans les deux tags garde alors les dégâts pleins, au lieu
-     * que le résultat dépende de l'ordre des branches.
+     * Applique un tir déjà payé. Volontairement le <strong>seul</strong> endroit du mod qui appelle
+     * {@code hurt} pour une tourelle : une arme décrit ce que fait son tir en remplissant un
+     * {@link TurretWeaponBlock.Shot}, elle ne réécrit pas l'application des dégâts.
      * <p>
-     * Les {@code .get()} restent <strong>dans</strong> la méthode : un champ statique initialisé
-     * depuis un {@code DeferredItem} se résoudrait au chargement de la classe, avant que le registre
-     * ne soit rempli.
+     * Type {@code magic} pour toutes les armes, y compris le lance-flammes : {@code inFire} serait
+     * purement annulé sur les blazes et cubes de magma (cf. {@code TurretFlamethrowerBlock}).
      */
-    @Nullable
-    private static Ammo ammoOf(Item item) {
-        if (item == ModItems.AMMO_INCENDIARY.get()) return TIER_INCENDIARY;
-        if (item == ModItems.AMMO_SLUG.get()) return TIER_SLUG;
-        ItemStack stack = new ItemStack(item);
-        if (stack.is(Tags.Items.NUGGETS_IRON)) return TIER_IRON;
-        if (stack.is(NUGGETS_COPPER)) return TIER_COPPER;
-        return null;
-    }
-
-    private static boolean isAmmo(Item item) {
-        return ammoOf(item) != null;
-    }
-
-    /**
-     * Deux couches : un déclic mécanique bref (le socle qui encaisse le tir) sous un "pew" d'énergie
-     * (même famille sonore que les tirs de bulle du Shulker — le son vanilla le plus proche d'un
-     * projectile énergétique) — plus convaincant que {@code DISPENSER_DISPENSE} seul, qui sonnait
-     * comme un coffre qu'on ouvre. Hauteur légèrement aléatoire pour ne pas répéter identique à
-     * chaque tir.
-     */
-    private void playFireSound(ServerLevel server) {
-        float pitch = 0.95f + server.getRandom().nextFloat() * 0.2f;
-        BlockPos pos = owner.getBlockPos();
-        server.playSound(null, pos, SoundEvents.DISPENSER_DISPENSE, SoundSource.BLOCKS, 0.6f, 0.7f);
-        server.playSound(null, pos, SoundEvents.SHULKER_SHOOT, SoundSource.BLOCKS, 1.0f, pitch);
-    }
-
-    /** Traînée de particules du canon vers l'impact : rend le tir instantané visible sans entité-projectile. */
-    private static void spawnTracer(ServerLevel server, Vec3 from, Vec3 to) {
-        Vec3 delta = to.subtract(from);
-        for (int i = 1; i <= TRACER_STEPS; i++) {
-            Vec3 p = from.add(delta.scale((double) i / TRACER_STEPS));
-            server.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 1, 0.0, 0.0, 0.0, 0.0);
+    private static void applyHit(ServerLevel server, LivingEntity target, TurretWeaponBlock.Shot shot) {
+        target.hurt(server.damageSources().magic(), shot.damage());
+        if (shot.igniteSeconds() > 0) {
+            target.igniteForSeconds(shot.igniteSeconds());
+        }
+        if (shot.slownessTicks() > 0) {
+            target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,
+                    shot.slownessTicks(), shot.slownessAmplifier()));
         }
     }
 

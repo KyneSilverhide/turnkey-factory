@@ -57,6 +57,9 @@ public class TurretBaseBlockEntity extends BlockEntity implements MenuProvider, 
     private final TurretCombat combat = new TurretCombat(this, this::tryConsumeShot, this::syncToClient,
             () -> {}, () -> TurretCombat.DEFAULT_FIRE_INTERVAL);
 
+    /** Réservoir de lave du socle : sert au lance-flammes, ignoré par les autres armes (cf. {@link TurretTank}). */
+    private final TurretTank tank = new TurretTank(this::syncToClient);
+
     private int refuelCooldown = 0;
     /** Jauge en nombre de tirs, jamais en ticks de combustion — cf. javadoc de classe. */
     private int charge = 0;
@@ -78,6 +81,7 @@ public class TurretBaseBlockEntity extends BlockEntity implements MenuProvider, 
     @Override public void setTargets(boolean hostile, boolean neutral, boolean player) { combat.setTargets(hostile, neutral, player); }
     @Override public boolean hasPower() { return charge > 0; }
     @Override public boolean hasAmmo() { return combat.hasAmmo(); }
+    @Override public TurretTank tank() { return tank; }
 
     /** Enregistré une seule fois par {@link TurretBaseBlock#setPlacedBy}. */
     public void setOwner(java.util.UUID id) { combat.setOwner(id); }
@@ -120,6 +124,7 @@ public class TurretBaseBlockEntity extends BlockEntity implements MenuProvider, 
         }
 
         combat.serverTick(server);
+        tank.serverTick();
 
         if (--refuelCooldown <= 0) {
             refuelCooldown = LINK_SCAN_INTERVAL;
@@ -203,6 +208,7 @@ public class TurretBaseBlockEntity extends BlockEntity implements MenuProvider, 
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         combat.save(tag);
+        tank.save(tag, registries);
         tag.putInt("charge", charge);
     }
 
@@ -210,6 +216,7 @@ public class TurretBaseBlockEntity extends BlockEntity implements MenuProvider, 
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         combat.load(tag);
+        tank.load(tag, registries);
         if (tag.contains("charge")) charge = Math.min(MAX_SHOTS, tag.getInt("charge"));
 
         // transitoire (présent uniquement dans les paquets réseau)

@@ -9,6 +9,8 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -67,5 +69,12 @@ public final class CreateKineticContent {
 
     public static void onCommonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> BlockStressValues.IMPACTS.register(TURRET_BASE_CREATE.get(), () -> STRESS_IMPACT));
+    }
+
+    /** Pendant Create de l'enregistrement fait dans {@code PrefabMod#registerCapabilities} — même
+     *  réservoir, mêmes règles ; ici seulement parce que le {@code BlockEntityType} vit sous garde. */
+    public static void registerCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, TURRET_BASE_CREATE_BE.get(),
+                (be, side) -> be.tank().handler());
     }
 }

@@ -41,10 +41,18 @@ public interface ITurret {
 
     /** Faux si la tourelle est active mais ne peut pas tirer faute d'énergie (couleur d'alerte côté GUI). */
     boolean hasPower();
-    /** Faux si aucune munition (iron/copper nugget) n'est actuellement disponible dans les inventaires
-     *  liés — cf. {@link TurretCombat}, identique pour les deux variantes. Utilisé par la checklist
-     *  {@code TurretScreen} (redstone / énergie / munitions). */
+    /** Faux si l'arme montée n'a actuellement pas de quoi tirer. Ce que ça recouvre dépend d'elle
+     *  (pépites dans les inventaires liés, lave dans le {@link #tank()}…) — cf.
+     *  {@link TurretWeaponBlock#hasAmmo}. Utilisé par la checklist {@code TurretScreen}
+     *  (arme / redstone / énergie / munitions). */
     boolean hasAmmo();
+
+    /**
+     * Réservoir de lave du socle — toujours présent, même sous une mitrailleuse qui ne s'en sert pas
+     * (cf. {@link TurretTank} pour pourquoi il appartient au socle et non à l'arme). Jamais
+     * {@code null} : les deux socles en ont un.
+     */
+    TurretTank tank();
     /** Ligne de statut énergie affichée dans {@code TurretScreen} (charge de charbon ou vitesse de rotation). */
     Component powerLabel();
     /** Niveau de la jauge d'énergie affichée dans {@code TurretScreen}, dans [0, 1] (charge/capacité
