@@ -13,7 +13,7 @@ without guessing:
   - Side: a recessed slot at the block's waist, out of which the animated brass cog
     (TurretModel/TurretRenderer, cf. ITurret#cogAngle) physically protrudes — that gear is real
     geometry, so this texture only draws the housing it emerges from, never teeth of its own. This
-    is where a Large Cogwheel meshes in horizontally (also like a Millstone's side gear).
+    is where a Cogwheel meshes in horizontally (also like a Millstone's side gear).
   - Top: a collar with a dark shaft hole at the centre. Decorative only — no shaft connects here, and
     the cannon assembly covers most of it anyway.
 """
