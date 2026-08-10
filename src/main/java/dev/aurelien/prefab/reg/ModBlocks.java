@@ -2,6 +2,7 @@ package dev.aurelien.prefab.reg;
 
 import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlock;
+import dev.aurelien.prefab.block.DescribedBlock;
 import dev.aurelien.prefab.block.LamplighterBlock;
 import dev.aurelien.prefab.block.LevelerBlock;
 import dev.aurelien.prefab.block.StarterHouseBlock;
@@ -9,7 +10,6 @@ import dev.aurelien.prefab.block.TexturizerBlock;
 import dev.aurelien.prefab.block.TurretBaseBlock;
 import dev.aurelien.prefab.block.TurretFlamethrowerBlock;
 import dev.aurelien.prefab.block.TurretWeaponBlock;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -114,8 +114,9 @@ public class ModBlocks {
      * même simplification que le lampadaire de l'allumeur de réverbères, qui puise « une bûche » sans
      * distinguer l'essence dans son coût.
      */
-    public static final DeferredBlock<Block> WOODEN_FRAME = BLOCKS.registerSimpleBlock(
+    public static final DeferredBlock<DescribedBlock> WOODEN_FRAME = BLOCKS.registerBlock(
             "wooden_frame",
+            DescribedBlock::new,
             BlockBehaviour.Properties.of()
                     .mapColor(MapColor.WOOD)
                     .strength(2.0F)

@@ -1,6 +1,7 @@
 package dev.aurelien.prefab.block;
 
 import com.mojang.serialization.MapCodec;
+import dev.aurelien.prefab.util.TooltipHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -168,19 +169,22 @@ public class TurretFlamethrowerBlock extends TurretWeaponBlock {
     }
 
     /**
-     * Le carburant ne se devine ni au modèle ni à la recette — c'est la question qu'on se pose en
-     * premier. La seconde ligne prévient que casser le socle vide le réservoir : c'est le
-     * comportement de <em>toute</em> l'énergie stockée d'un socle (la charge de charbon part déjà de
-     * la même façon, les tables de butin ne recopient aucune donnée de BlockEntity), mais huit seaux
-     * de lave qui disparaissent se remarquent bien plus qu'un compteur de tirs, et c'est justement
-     * en déplaçant sa tourelle qu'on le découvrirait.
+     * Ne rappelle PAS {@link TurretWeaponBlock#appendHoverText} : ce parent n'affiche qu'une seule
+     * ligne de prérequis (celle de la mitrailleuse), alors que le lance-flammes en a deux (capacité du
+     * réservoir + avertissement de vidange) — les résoudre toutes les deux ici, via le même
+     * {@link dev.aurelien.prefab.util.TooltipHelper#machine}, évite d'appeler la méthode du parent
+     * deux fois (et donc de dupliquer la ligne de résumé). Le carburant ne se devine ni au modèle ni à
+     * la recette — c'est la question qu'on se pose en premier ; la seconde ligne prévient que casser
+     * le socle vide le réservoir, comme pour toute l'énergie stockée d'un socle (la charge de charbon
+     * part déjà de la même façon), mais huit seaux de lave qui disparaissent se remarquent bien plus
+     * qu'un compteur de tirs.
      */
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltip, flag);
-        tooltip.add(Component.translatable("block.turnkey_factory.turret_flamethrower.tooltip.lava",
-                TurretTank.BUCKETS, LAVA_PER_SHOT).withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("block.turnkey_factory.turret_flamethrower.tooltip.drain")
-                .withStyle(ChatFormatting.DARK_GRAY));
+        String id = getDescriptionId();
+        TooltipHelper.machine(tooltip, id,
+                Component.translatable(id + ".tooltip.req_1", TurretTank.BUCKETS, LAVA_PER_SHOT)
+                        .withStyle(ChatFormatting.GRAY),
+                Component.translatable(id + ".tooltip.req_2").withStyle(ChatFormatting.DARK_GRAY));
     }
 }

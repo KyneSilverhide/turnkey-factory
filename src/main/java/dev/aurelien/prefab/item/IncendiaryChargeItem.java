@@ -1,6 +1,5 @@
 package dev.aurelien.prefab.item;
 
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -25,7 +24,7 @@ import net.minecraft.world.item.ItemStack;
  * {@code Recipe#getRemainingItems} via {@code ItemStack}). L'amorce est donc rendue au joueur,
  * abîmée d'un point, jusqu'à disparaître au huitième usage.
  */
-public class IncendiaryChargeItem extends Item {
+public class IncendiaryChargeItem extends DescribedItem {
     public IncendiaryChargeItem(Properties properties) {
         super(properties);
     }

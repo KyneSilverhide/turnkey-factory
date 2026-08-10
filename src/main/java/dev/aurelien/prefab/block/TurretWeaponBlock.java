@@ -1,6 +1,7 @@
 package dev.aurelien.prefab.block;
 
 import com.mojang.serialization.MapCodec;
+import dev.aurelien.prefab.util.TooltipHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -210,10 +211,17 @@ public class TurretWeaponBlock extends Block {
         return InteractionResult.SUCCESS;
     }
 
-    /** La condition de pose (socle obligatoire) n'est devinable ni au modèle ni à la recette. */
+    /**
+     * Résumé + détail derrière SHIFT (cf. {@link dev.aurelien.prefab.util.TooltipHelper}), résolus
+     * via {@link #getDescriptionId()} : chaque sous-classe (mitrailleuse, lance-flammes) obtient donc
+     * son propre texte sans que celle-ci ait à savoir laquelle tire. Ni la condition de pose (socle
+     * obligatoire) ni la munition ne sont devinables au modèle ou à la recette.
+     */
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
-        tooltip.add(Component.translatable("block.turnkey_factory.turret_weapon.tooltip.base").withStyle(ChatFormatting.GRAY));
+        String id = getDescriptionId();
+        TooltipHelper.machine(tooltip, id,
+                Component.translatable(id + ".tooltip.req_1").withStyle(ChatFormatting.GRAY));
     }
 }

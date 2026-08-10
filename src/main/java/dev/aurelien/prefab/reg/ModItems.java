@@ -1,6 +1,7 @@
 package dev.aurelien.prefab.reg;
 
 import dev.aurelien.prefab.PrefabMod;
+import dev.aurelien.prefab.item.DescribedItem;
 import dev.aurelien.prefab.item.IncendiaryChargeItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -39,9 +40,11 @@ public class ModItems {
 
     // Composants intermédiaires de la recette du bloc de contrôle.
     /** Plan d'architecte (papier + lapis) : la « mémoire de plan » du bloc de contrôle. */
-    public static final DeferredItem<Item> ARCHITECT_BLUEPRINT = ITEMS.registerSimpleItem("architect_blueprint");
+    public static final DeferredItem<Item> ARCHITECT_BLUEPRINT =
+            ITEMS.registerItem("architect_blueprint", DescribedItem::new, new Item.Properties());
     /** Cœur de contrôle (quartz + redstone + or) : la logique de calcul/scan du bloc de contrôle. */
-    public static final DeferredItem<Item> CONTROL_CORE = ITEMS.registerSimpleItem("control_core");
+    public static final DeferredItem<Item> CONTROL_CORE =
+            ITEMS.registerItem("control_core", DescribedItem::new, new Item.Properties());
 
     /**
      * Munition tourelle "moitié dégâts" (cf. {@code TurretCombat}) : Minecraft 1.21.1 n'a pas de
@@ -58,7 +61,8 @@ public class ModItems {
      * piles dont l'item n'existe plus. Une recette absente ne coûte rien ; un item absent coûte
      * l'inventaire du joueur.
      */
-    public static final DeferredItem<Item> COPPER_NUGGET = ITEMS.registerSimpleItem("copper_nugget");
+    public static final DeferredItem<Item> COPPER_NUGGET =
+            ITEMS.registerItem("copper_nugget", DescribedItem::new, new Item.Properties());
 
     // Munitions manufacturées (cf. le tableau des paliers dans TurretCombat).
     /**
@@ -69,10 +73,12 @@ public class ModItems {
      * chaque étape). La tourelle est de toute façon électrique, elle lance le projectile au lieu de
      * le propulser par combustion — rien à justifier côté fiction.
      */
-    public static final DeferredItem<Item> AMMO_SLUG = ITEMS.registerSimpleItem("ammo_slug");
+    public static final DeferredItem<Item> AMMO_SLUG =
+            ITEMS.registerItem("ammo_slug", DescribedItem::new, new Item.Properties());
 
     /** Obus incendiaire : mêmes dégâts que l'obus perforant, mais enflamme la cible (cf. TurretCombat). */
-    public static final DeferredItem<Item> AMMO_INCENDIARY = ITEMS.registerSimpleItem("ammo_incendiary");
+    public static final DeferredItem<Item> AMMO_INCENDIARY =
+            ITEMS.registerItem("ammo_incendiary", DescribedItem::new, new Item.Properties());
 
     /**
      * Amorce incendiaire, 8 charges (cf. {@link IncendiaryChargeItem} pour le mécanisme d'usure).
@@ -90,5 +96,6 @@ public class ModItems {
      * est simplement introuvable : aucune recette ne le produit et il n'apparaît pas dans l'onglet
      * créatif.
      */
-    public static final DeferredItem<Item> INCOMPLETE_AMMO_SLUG = ITEMS.registerSimpleItem("incomplete_ammo_slug");
+    public static final DeferredItem<Item> INCOMPLETE_AMMO_SLUG =
+            ITEMS.registerItem("incomplete_ammo_slug", DescribedItem::new, new Item.Properties());
 }

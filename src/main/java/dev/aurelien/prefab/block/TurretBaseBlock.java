@@ -1,13 +1,18 @@
 package dev.aurelien.prefab.block;
 
 import com.mojang.serialization.MapCodec;
+import dev.aurelien.prefab.util.TooltipHelper;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -17,6 +22,8 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * Socle de tourelle à charbon : la machine complète (énergie, signal redstone, inventaires liés,
@@ -109,5 +116,14 @@ public class TurretBaseBlock extends Block implements EntityBlock, ITurretBase {
         if (!level.isClientSide) {
             ITurret.syncRedstoneState(level, pos);
         }
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
+        String id = getDescriptionId();
+        TooltipHelper.machine(tooltip, id,
+                Component.translatable(id + ".tooltip.req_1").withStyle(ChatFormatting.GRAY),
+                Component.translatable(id + ".tooltip.req_2").withStyle(ChatFormatting.GRAY));
     }
 }

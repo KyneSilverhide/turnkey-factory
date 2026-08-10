@@ -1,10 +1,16 @@
 package dev.aurelien.prefab.block;
 
 import com.mojang.serialization.MapCodec;
+import dev.aurelien.prefab.util.TooltipHelper;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -18,6 +24,8 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * Kit de maison de départ : un clic droit ouvre une interface à un seul bouton qui matérialise
@@ -78,5 +86,14 @@ public class StarterHouseBlock extends Block implements EntityBlock {
             player.openMenu(be, buf -> buf.writeBlockPos(pos));
         }
         return InteractionResult.SUCCESS;
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
+        String id = getDescriptionId();
+        TooltipHelper.machine(tooltip, id,
+                Component.translatable(id + ".tooltip.req_1").withStyle(ChatFormatting.GRAY),
+                Component.translatable(id + ".tooltip.req_2").withStyle(ChatFormatting.GRAY));
     }
 }

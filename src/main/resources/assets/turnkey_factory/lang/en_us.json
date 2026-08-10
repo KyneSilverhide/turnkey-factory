@@ -10,18 +10,60 @@
   "block.turnkey_factory.turret_base_create": "Kinetic Turret Base",
   "block.turnkey_factory.turret_machinegun": "Machine Gun",
   "block.turnkey_factory.turret_flamethrower": "Flamethrower",
-  "block.turnkey_factory.turret_weapon.tooltip.base": "Must be placed on a turret base",
-  "block.turnkey_factory.turret_flamethrower.tooltip.lava": "Runs on lava — pour a bucket onto the base or pipe it in (%s buckets max, %s mB per shot)",
-  "block.turnkey_factory.turret_flamethrower.tooltip.drain": "Breaking the base empties its tank — drain it before moving the turret",
-  "block.turnkey_factory.turret_base_create.tooltip.shaft": "Connect a rotational shaft from below or use cogs on the sides",
-  "block.turnkey_factory.turret_base_create.tooltip.checklist": "Needs a weapon on top, enough shaft speed, ammo, and a redstone signal to fire",
+
+  "item.turnkey_factory.tooltip.hold_shift": "Hold SHIFT for requirements",
+
+  "block.turnkey_factory.controller.tooltip.summary": "Builds a factory shell — walls, roof, windows, doors — from a ghost preview.",
+  "block.turnkey_factory.controller.tooltip.req_1": "Set the size and style, then press Build in its interface.",
+  "block.turnkey_factory.controller.tooltip.req_2": "Pulls materials from linked chests.",
+
+  "block.turnkey_factory.leveler.tooltip.summary": "Flattens the terrain around itself to a target height (cut and fill).",
+  "block.turnkey_factory.leveler.tooltip.req_1": "Place a shovel (and a pickaxe for stone) inside, then press Start.",
+  "block.turnkey_factory.leveler.tooltip.req_2": "Pulls fill material from linked inventories.",
+
+  "block.turnkey_factory.texturizer.tooltip.summary": "Re-textures natural ground around itself in a stone or dirt mosaic.",
+  "block.turnkey_factory.texturizer.tooltip.req_1": "Place a pickaxe (stone) or shovel (dirt) inside, then press Start.",
+  "block.turnkey_factory.texturizer.tooltip.req_2": "Pulls cobblestone or dirt from linked inventories.",
+
+  "block.turnkey_factory.lamplighter.tooltip.summary": "Plants lampposts around itself on a spaced grid to light the area.",
+  "block.turnkey_factory.lamplighter.tooltip.req_1": "Press Start in its interface — no tool needed.",
+  "block.turnkey_factory.lamplighter.tooltip.req_2": "Pulls torches, iron ingots and logs from linked inventories.",
+
+  "block.turnkey_factory.starter_house.tooltip.summary": "One-click starter house — stamps a furnished cabin around itself.",
+  "block.turnkey_factory.starter_house.tooltip.req_1": "Open its interface and press Build — instant, the block is consumed.",
+  "block.turnkey_factory.starter_house.tooltip.req_2": "Overwrites the outline; the door faces the way you placed it.",
+
+  "block.turnkey_factory.wooden_frame.tooltip": "Crafting component for the Starter House Kit.",
+
+  "block.turnkey_factory.turret_base.tooltip.summary": "Coal-powered turret base — burns furnace fuel to power a weapon.",
+  "block.turnkey_factory.turret_base.tooltip.req_1": "Needs a redstone signal to fire — no On/Off button in its interface.",
+  "block.turnkey_factory.turret_base.tooltip.req_2": "Burns furnace fuel (coal, charcoal, blaze rods…) from linked inventories.",
+
+  "block.turnkey_factory.turret_base_create.tooltip.summary": "Kinetic turret base — draws power from a Create network to fire a weapon.",
+  "block.turnkey_factory.turret_base_create.tooltip.req_1": "Connect a shaft from below, or a Cogwheel on the side.",
+  "block.turnkey_factory.turret_base_create.tooltip.req_2": "Needs a weapon, enough speed, ammo, and a redstone signal to fire.",
+
+  "block.turnkey_factory.turret_machinegun.tooltip.summary": "Turret weapon — mount on a base for automatic hitscan fire.",
+  "block.turnkey_factory.turret_machinegun.tooltip.req_1": "Fires iron or copper nuggets, or manufactured slugs for double damage.",
+
+  "block.turnkey_factory.turret_flamethrower.tooltip.summary": "Turret weapon — mount on a base to spray burning, slowing flames.",
+  "block.turnkey_factory.turret_flamethrower.tooltip.req_1": "Runs on lava — pour a bucket on the base or pipe it in (%s buckets, %s mB/shot).",
+  "block.turnkey_factory.turret_flamethrower.tooltip.req_2": "Breaking the base empties its tank — drain it before moving the turret.",
+
   "item.turnkey_factory.architect_blueprint": "Architect's Blueprint",
+  "item.turnkey_factory.architect_blueprint.tooltip": "Crafting component for the Factory Controller.",
   "item.turnkey_factory.control_core": "Control Core",
+  "item.turnkey_factory.control_core.tooltip": "Crafting component for the Factory Controller.",
   "item.turnkey_factory.copper_nugget": "Copper Nugget",
+  "item.turnkey_factory.copper_nugget.tooltip": "Turret ammo — half the damage of an iron nugget.",
   "item.turnkey_factory.ammo_slug": "Armor-Piercing Slug",
+  "item.turnkey_factory.ammo_slug.tooltip": "Manufactured turret ammo — double the damage of an iron nugget.",
   "item.turnkey_factory.ammo_incendiary": "Incendiary Slug",
+  "item.turnkey_factory.ammo_incendiary.tooltip": "Manufactured turret ammo — double damage, and ignites the target for 5 seconds.",
   "item.turnkey_factory.incendiary_charge": "Incendiary Primer",
+  "item.turnkey_factory.incendiary_charge.tooltip": "Applied to an Armor-Piercing Slug to make it an Incendiary Slug (8 charges).",
   "item.turnkey_factory.incomplete_ammo_slug": "Incomplete Slug",
+  "item.turnkey_factory.incomplete_ammo_slug.tooltip": "Transient item — carries a slug through Create's belt assembly line.",
 
   "gui.turnkey_factory.width": "Width",
   "gui.turnkey_factory.length": "Length",
@@ -155,7 +197,7 @@
   "gui.turnkey_factory.book.all_available": "Everything is available.",
   "gui.turnkey_factory.book.missing_resources": "Some resources are missing.",
   "gui.turnkey_factory.starter_house.contents": "What you get",
-  "gui.turnkey_factory.starter_house.contents.detail": "A furnished cabin: bed, chests and barrels, furnace and smoker, crafting table, bookshelf and loom, lanterns, and a railed balcony. The door faces the way you placed the block.",
+  "gui.turnkey_factory.starter_house.contents.detail": "A furnished cabin: bed, chests and barrels, furnace and smoker, crafting table and lanterns. The door faces the way you placed the block.",
   "gui.turnkey_factory.starter_house.size": "Footprint %s × %s × %s, centred on this block.",
   "gui.turnkey_factory.starter_house.warning": "Instant and final: everything inside the outline is overwritten, and this block is consumed.",
   "gui.turnkey_factory.starter_house.build": "Build"

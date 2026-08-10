@@ -1,10 +1,16 @@
 package dev.aurelien.prefab.block;
 
 import com.mojang.serialization.MapCodec;
+import dev.aurelien.prefab.util.TooltipHelper;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -14,6 +20,8 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * Texturiseur : bloc autonome qui retexture le sol naturel autour de lui avec le mélange de blocs
@@ -69,5 +77,14 @@ public class TexturizerBlock extends Block implements EntityBlock {
             Containers.dropContents(level, pos, be);
         }
         super.onRemove(state, level, pos, newState, movedByPiston);
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
+        String id = getDescriptionId();
+        TooltipHelper.machine(tooltip, id,
+                Component.translatable(id + ".tooltip.req_1").withStyle(ChatFormatting.GRAY),
+                Component.translatable(id + ".tooltip.req_2").withStyle(ChatFormatting.GRAY));
     }
 }

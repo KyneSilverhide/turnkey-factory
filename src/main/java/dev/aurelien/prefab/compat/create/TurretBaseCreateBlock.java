@@ -7,6 +7,7 @@ import com.simibubi.create.content.kinetics.simpleRelays.ICogWheel;
 import dev.aurelien.prefab.block.ITurret;
 import dev.aurelien.prefab.block.ITurretBase;
 import dev.aurelien.prefab.block.TurretTank;
+import dev.aurelien.prefab.util.TooltipHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -100,8 +101,10 @@ public class TurretBaseCreateBlock extends KineticBlock implements EntityBlock, 
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
-        tooltip.add(Component.translatable("block.turnkey_factory.turret_base_create.tooltip.shaft").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("block.turnkey_factory.turret_base_create.tooltip.checklist").withStyle(ChatFormatting.DARK_GRAY));
+        String id = getDescriptionId();
+        TooltipHelper.machine(tooltip, id,
+                Component.translatable(id + ".tooltip.req_1").withStyle(ChatFormatting.GRAY),
+                Component.translatable(id + ".tooltip.req_2").withStyle(ChatFormatting.GRAY));
     }
 
     /** Cf. {@link dev.aurelien.prefab.block.TurretBaseBlock#useItemOn} — même remplissage au seau. */

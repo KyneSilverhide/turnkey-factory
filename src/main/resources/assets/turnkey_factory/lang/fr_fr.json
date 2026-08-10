@@ -10,18 +10,60 @@
   "block.turnkey_factory.turret_base_create": "Socle de tourelle cinétique",
   "block.turnkey_factory.turret_machinegun": "Mitrailleuse",
   "block.turnkey_factory.turret_flamethrower": "Lance-flammes",
-  "block.turnkey_factory.turret_weapon.tooltip.base": "À poser sur un socle de tourelle",
-  "block.turnkey_factory.turret_flamethrower.tooltip.lava": "Fonctionne à la lave : versez un seau sur le socle ou raccordez un tuyau (%s seaux max, %s mB par tir)",
-  "block.turnkey_factory.turret_flamethrower.tooltip.drain": "Casser le socle vide son réservoir — récupérez la lave avant de déplacer la tourelle",
-  "block.turnkey_factory.turret_base_create.tooltip.shaft": "Connectez un arbre de transmission par le dessous ou des engrenages sur le côté",
-  "block.turnkey_factory.turret_base_create.tooltip.checklist": "Nécessite une arme sur le socle, une vitesse suffisante, des munitions et un signal redstone pour tirer",
+
+  "item.turnkey_factory.tooltip.hold_shift": "Maintenez SHIFT pour les prérequis",
+
+  "block.turnkey_factory.controller.tooltip.summary": "Construit une coquille d'usine — murs, toit, fenêtres, portes — depuis un fantôme.",
+  "block.turnkey_factory.controller.tooltip.req_1": "Réglez taille et style, puis appuyez sur Construire dans son interface.",
+  "block.turnkey_factory.controller.tooltip.req_2": "Puise les matériaux dans les coffres liés.",
+
+  "block.turnkey_factory.leveler.tooltip.summary": "Aplanit le terrain autour de lui à une hauteur cible (creuse et remblaie).",
+  "block.turnkey_factory.leveler.tooltip.req_1": "Placez une pelle (et une pioche pour la roche), puis Démarrer.",
+  "block.turnkey_factory.leveler.tooltip.req_2": "Puise le remblai dans les inventaires liés.",
+
+  "block.turnkey_factory.texturizer.tooltip.summary": "Retexture le sol naturel autour de lui en mosaïque de pierre ou de terre.",
+  "block.turnkey_factory.texturizer.tooltip.req_1": "Placez la pioche (pierre) ou la pelle (terre), puis Démarrer.",
+  "block.turnkey_factory.texturizer.tooltip.req_2": "Puise du cobblestone ou de la terre dans les inventaires liés.",
+
+  "block.turnkey_factory.lamplighter.tooltip.summary": "Plante des lampadaires autour de lui sur une grille pour éclairer la zone.",
+  "block.turnkey_factory.lamplighter.tooltip.req_1": "Appuyez sur Démarrer — aucun outil nécessaire.",
+  "block.turnkey_factory.lamplighter.tooltip.req_2": "Puise torches, lingots de fer et bûches dans les inventaires liés.",
+
+  "block.turnkey_factory.starter_house.tooltip.summary": "Maison en un clic — matérialise une cabane meublée autour de lui.",
+  "block.turnkey_factory.starter_house.tooltip.req_1": "Ouvrez l'interface et appuyez sur Construire — le bloc est consommé.",
+  "block.turnkey_factory.starter_house.tooltip.req_2": "Écrase le contour ; la porte regarde le sens où vous l'avez posé.",
+
+  "block.turnkey_factory.wooden_frame.tooltip": "Composant de recette du kit de maison de départ.",
+
+  "block.turnkey_factory.turret_base.tooltip.summary": "Socle à charbon — brûle du combustible de four pour alimenter une arme.",
+  "block.turnkey_factory.turret_base.tooltip.req_1": "Nécessite un signal redstone — pas de bouton Marche/Arrêt dans l'interface.",
+  "block.turnkey_factory.turret_base.tooltip.req_2": "Brûle du combustible de four (charbon, charbon de bois…) des inventaires liés.",
+
+  "block.turnkey_factory.turret_base_create.tooltip.summary": "Socle cinétique — tire son énergie d'un réseau Create pour alimenter une arme.",
+  "block.turnkey_factory.turret_base_create.tooltip.req_1": "Connectez un arbre par le dessous, ou un engrenage sur le côté.",
+  "block.turnkey_factory.turret_base_create.tooltip.req_2": "Nécessite une arme, une vitesse suffisante, des munitions et la redstone.",
+
+  "block.turnkey_factory.turret_machinegun.tooltip.summary": "Arme de tourelle — à poser sur un socle pour un tir automatique direct.",
+  "block.turnkey_factory.turret_machinegun.tooltip.req_1": "Tire pépites de fer/cuivre, ou obus manufacturés pour dégâts doublés.",
+
+  "block.turnkey_factory.turret_flamethrower.tooltip.summary": "Arme de tourelle — projette des flammes brûlantes et ralentissantes.",
+  "block.turnkey_factory.turret_flamethrower.tooltip.req_1": "Fonctionne à la lave — seau sur le socle ou tuyau (%s seaux, %s mB/tir).",
+  "block.turnkey_factory.turret_flamethrower.tooltip.req_2": "Casser le socle vide le réservoir — videz-le avant de déplacer la tourelle.",
+
   "item.turnkey_factory.architect_blueprint": "Plan d'architecte",
+  "item.turnkey_factory.architect_blueprint.tooltip": "Composant de recette du bloc de contrôle d'usine.",
   "item.turnkey_factory.control_core": "Cœur de contrôle",
+  "item.turnkey_factory.control_core.tooltip": "Composant de recette du bloc de contrôle d'usine.",
   "item.turnkey_factory.copper_nugget": "Pépite de cuivre",
+  "item.turnkey_factory.copper_nugget.tooltip": "Munition de tourelle — moitié moins de dégâts qu'une pépite de fer.",
   "item.turnkey_factory.ammo_slug": "Obus perforant",
+  "item.turnkey_factory.ammo_slug.tooltip": "Munition de tourelle manufacturée — deux fois les dégâts d'une pépite de fer.",
   "item.turnkey_factory.ammo_incendiary": "Obus incendiaire",
+  "item.turnkey_factory.ammo_incendiary.tooltip": "Munition manufacturée — dégâts doublés, enflamme la cible 5 s.",
   "item.turnkey_factory.incendiary_charge": "Amorce incendiaire",
+  "item.turnkey_factory.incendiary_charge.tooltip": "Appliquée sur un obus perforant pour en faire un obus incendiaire (8 charges).",
   "item.turnkey_factory.incomplete_ammo_slug": "Ébauche d'obus",
+  "item.turnkey_factory.incomplete_ammo_slug.tooltip": "Item transitoire — transporte un obus le long de la chaîne d'assemblage Create.",
 
   "gui.turnkey_factory.width": "Largeur",
   "gui.turnkey_factory.length": "Longueur",
@@ -155,7 +197,7 @@
   "gui.turnkey_factory.book.all_available": "Tout est disponible.",
   "gui.turnkey_factory.book.missing_resources": "Il manque des ressources.",
   "gui.turnkey_factory.starter_house.contents": "Ce que vous obtenez",
-  "gui.turnkey_factory.starter_house.contents.detail": "Une cabane meublée : lit, coffres et tonneaux, four et fumoir, établi, bibliothèque et métier à tisser, lanternes, et un balcon à balustrade. La porte regarde du côté où vous avez posé le bloc.",
+  "gui.turnkey_factory.starter_house.contents.detail": "Une cabane meublée : lit, coffres et tonneaux, four et fumoir, établi et lanternes. La porte regarde du côté où vous avez posé le bloc.",
   "gui.turnkey_factory.starter_house.size": "Emprise %s × %s × %s, centrée sur ce bloc.",
   "gui.turnkey_factory.starter_house.warning": "Instantané et définitif : tout ce qui est dans le contour est écrasé, et ce bloc est consommé.",
   "gui.turnkey_factory.starter_house.build": "Construire"
