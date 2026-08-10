@@ -3,6 +3,7 @@ package dev.aurelien.prefab;
 import dev.aurelien.prefab.client.ControllerScreen;
 import dev.aurelien.prefab.client.LamplighterScreen;
 import dev.aurelien.prefab.client.LevelerScreen;
+import dev.aurelien.prefab.client.StarterHouseScreen;
 import dev.aurelien.prefab.client.TexturizerScreen;
 import dev.aurelien.prefab.client.TurretModel;
 import dev.aurelien.prefab.client.TurretRenderer;
@@ -25,6 +26,7 @@ public class PrefabModClient {
         event.register(ModMenus.LEVELER.get(), LevelerScreen::new);
         event.register(ModMenus.TEXTURIZER.get(), TexturizerScreen::new);
         event.register(ModMenus.LAMPLIGHTER.get(), LamplighterScreen::new);
+        event.register(ModMenus.STARTER_HOUSE.get(), StarterHouseScreen::new);
         event.register(ModMenus.TURRET.get(), TurretScreen::new);
     }
 

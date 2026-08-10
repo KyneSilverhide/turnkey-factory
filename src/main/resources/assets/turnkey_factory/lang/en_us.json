@@ -4,6 +4,8 @@
   "block.turnkey_factory.leveler": "Ground Leveler",
   "block.turnkey_factory.texturizer": "Ground Texturizer",
   "block.turnkey_factory.lamplighter": "Lamplighter",
+  "block.turnkey_factory.starter_house": "Starter House Kit",
+  "block.turnkey_factory.wooden_frame": "Wooden Frame",
   "block.turnkey_factory.turret_base": "Turret Base",
   "block.turnkey_factory.turret_base_create": "Kinetic Turret Base",
   "block.turnkey_factory.turret_machinegun": "Machine Gun",
@@ -151,5 +153,10 @@
   "gui.turnkey_factory.book.dimensions": "%s×%s×%s",
   "gui.turnkey_factory.book.missing": "  missing %s",
   "gui.turnkey_factory.book.all_available": "Everything is available.",
-  "gui.turnkey_factory.book.missing_resources": "Some resources are missing."
+  "gui.turnkey_factory.book.missing_resources": "Some resources are missing.",
+  "gui.turnkey_factory.starter_house.contents": "What you get",
+  "gui.turnkey_factory.starter_house.contents.detail": "A furnished cabin: bed, chests and barrels, furnace and smoker, crafting table, bookshelf and loom, lanterns, and a railed balcony. The door faces the way you placed the block.",
+  "gui.turnkey_factory.starter_house.size": "Footprint %s × %s × %s, centred on this block.",
+  "gui.turnkey_factory.starter_house.warning": "Instant and final: everything inside the outline is overwritten, and this block is consumed.",
+  "gui.turnkey_factory.starter_house.build": "Build"
 }

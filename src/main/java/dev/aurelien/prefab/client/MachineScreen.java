@@ -13,7 +13,7 @@ import net.minecraft.world.inventory.Slot;
 
 /**
  * Socle commun aux écrans de machines : le fond texturé, le dessin des slots, et les primitives de
- * texte (libellé + valeur, texte replié, checklist) que les cinq écrans dupliquaient à l'identique.
+ * texte (libellé + valeur, texte replié, checklist) que les six écrans dupliquaient à l'identique.
  *
  * <p>Volontairement mince : pas de moteur de mise en page. Chaque écran garde ses propres constantes
  * de Y explicites — seules les colonnes X, le rythme vertical partagé (cf. {@link #Y_ROW0},
@@ -33,7 +33,11 @@ public abstract class MachineScreen<T extends AbstractContainerMenu> extends Abs
     private static final ResourceLocation SLOT_TOOL =
             ResourceLocation.fromNamespaceAndPath(PrefabMod.MODID, "panel/slot_tool");
 
-    /** Gabarit partagé par les trois machines de terrain (niveleuse, texturiseur, allumeur). */
+    /**
+     * Gabarit partagé par les trois machines de terrain (niveleuse, texturiseur, allumeur), et repris
+     * tel quel par le kit de maison de départ — qui n'a pourtant qu'un bouton : c'est ce qui fait que
+     * son « Construire » tombe exactement là où les autres machines ont leur « Démarrer ».
+     */
     protected static final int PANEL_W = 300;
     protected static final int PANEL_H = 238;
     /** Inventaire joueur centré dans le panneau : (PANEL_W - 9*18) / 2. */

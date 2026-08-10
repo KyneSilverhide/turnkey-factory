@@ -4,10 +4,13 @@ import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlock;
 import dev.aurelien.prefab.block.LamplighterBlock;
 import dev.aurelien.prefab.block.LevelerBlock;
+import dev.aurelien.prefab.block.StarterHouseBlock;
 import dev.aurelien.prefab.block.TexturizerBlock;
 import dev.aurelien.prefab.block.TurretBaseBlock;
 import dev.aurelien.prefab.block.TurretFlamethrowerBlock;
 import dev.aurelien.prefab.block.TurretWeaponBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.neoforge.registries.DeferredBlock;
@@ -84,6 +87,41 @@ public class ModBlocks {
                     .mapColor(MapColor.METAL)
                     .strength(3.5F)
                     .requiresCorrectToolForDrops()
+    );
+
+    /**
+     * Kit de maison de départ : le seul bloc du mod qui bâtisse d'un coup, sans matériaux ni file
+     * d'attente (cf. {@link dev.aurelien.prefab.block.StarterHouseBlockEntity}). En bois plutôt qu'en
+     * métal comme les machines — c'est une caisse de chantier, pas un établi — d'où la hache comme
+     * outil et non la pioche. {@code noOcclusion} pour la même raison que les machines : son modèle
+     * est une caisse cerclée qui n'occupe pas tout son cube.
+     */
+    public static final DeferredBlock<StarterHouseBlock> STARTER_HOUSE = BLOCKS.registerBlock(
+            "starter_house",
+            StarterHouseBlock::new,
+            BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.WOOD)
+                    .strength(2.0F)
+                    .noOcclusion()
+                    .sound(SoundType.WOOD)
+                    .ignitedByLava()
+    );
+
+    /**
+     * Ossature en bois : composant de la recette du kit ci-dessus, neuf bûches assemblées en pans de
+     * bois. Bloc et non simple objet — il se pose, et sert alors de colombage décoratif. Toute essence
+     * convient (sa recette accepte le tag {@code minecraft:logs}), le modèle est unique : c'est la
+     * même simplification que le lampadaire de l'allumeur de réverbères, qui puise « une bûche » sans
+     * distinguer l'essence dans son coût.
+     */
+    public static final DeferredBlock<Block> WOODEN_FRAME = BLOCKS.registerSimpleBlock(
+            "wooden_frame",
+            BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.WOOD)
+                    .strength(2.0F)
+                    .noOcclusion()
+                    .sound(SoundType.WOOD)
+                    .ignitedByLava()
     );
 
     /**

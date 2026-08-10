@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "turnkey_factory:starter_house",
+    "turnkey_factory:wooden_frame"
+  ]
+}

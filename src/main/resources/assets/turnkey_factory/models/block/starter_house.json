@@ -1,0 +1,103 @@
+{
+  "__comment": "Caisse de chantier cerclee de metal, plan punaise sur la facade. Reutilise les textures existantes (machine_frame et controller_blueprint des machines, planches de sapin vanilla pour rappeler l'essence dominante de la maison) : aucun PNG nouveau a generer. Le bloc n'occupe pas tout son cube (montants en saillie), d'ou noOcclusion cote ModBlocks.",
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/spruce_planks",
+    "planks": "minecraft:block/spruce_planks",
+    "frame": "turnkey_factory:block/machine_frame",
+    "blueprint": "turnkey_factory:block/controller_blueprint"
+  },
+  "elements": [
+    {
+      "name": "caisse",
+      "from": [1, 0, 1],
+      "to": [15, 14, 15],
+      "faces": {
+        "north": { "texture": "#planks" },
+        "south": { "texture": "#planks" },
+        "west": { "texture": "#planks" },
+        "east": { "texture": "#planks" },
+        "up": { "texture": "#planks" },
+        "down": { "texture": "#planks" }
+      }
+    },
+    {
+      "name": "couvercle",
+      "from": [0, 14, 0],
+      "to": [16, 16, 16],
+      "faces": {
+        "north": { "texture": "#frame" },
+        "south": { "texture": "#frame" },
+        "west": { "texture": "#frame" },
+        "east": { "texture": "#frame" },
+        "up": { "texture": "#frame" },
+        "down": { "texture": "#planks" }
+      }
+    },
+    {
+      "name": "montant",
+      "from": [0, 0, 0],
+      "to": [2, 14, 2],
+      "faces": {
+        "north": { "texture": "#frame" },
+        "south": { "texture": "#frame" },
+        "west": { "texture": "#frame" },
+        "east": { "texture": "#frame" },
+        "up": { "texture": "#frame" },
+        "down": { "texture": "#frame" }
+      }
+    },
+    {
+      "name": "montant",
+      "from": [14, 0, 0],
+      "to": [16, 14, 2],
+      "faces": {
+        "north": { "texture": "#frame" },
+        "south": { "texture": "#frame" },
+        "west": { "texture": "#frame" },
+        "east": { "texture": "#frame" },
+        "up": { "texture": "#frame" },
+        "down": { "texture": "#frame" }
+      }
+    },
+    {
+      "name": "montant",
+      "from": [0, 0, 14],
+      "to": [2, 14, 16],
+      "faces": {
+        "north": { "texture": "#frame" },
+        "south": { "texture": "#frame" },
+        "west": { "texture": "#frame" },
+        "east": { "texture": "#frame" },
+        "up": { "texture": "#frame" },
+        "down": { "texture": "#frame" }
+      }
+    },
+    {
+      "name": "montant",
+      "from": [14, 0, 14],
+      "to": [16, 14, 16],
+      "faces": {
+        "north": { "texture": "#frame" },
+        "south": { "texture": "#frame" },
+        "west": { "texture": "#frame" },
+        "east": { "texture": "#frame" },
+        "up": { "texture": "#frame" },
+        "down": { "texture": "#frame" }
+      }
+    },
+    {
+      "name": "plan punaise",
+      "from": [3, 4, 0.5],
+      "to": [13, 11, 1],
+      "faces": {
+        "north": { "texture": "#blueprint" },
+        "south": { "texture": "#planks" },
+        "west": { "texture": "#frame" },
+        "east": { "texture": "#frame" },
+        "up": { "texture": "#frame" },
+        "down": { "texture": "#frame" }
+      }
+    }
+  ]
+}

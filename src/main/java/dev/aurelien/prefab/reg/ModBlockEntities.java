@@ -4,6 +4,7 @@ import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlockEntity;
 import dev.aurelien.prefab.block.LamplighterBlockEntity;
 import dev.aurelien.prefab.block.LevelerBlockEntity;
+import dev.aurelien.prefab.block.StarterHouseBlockEntity;
 import dev.aurelien.prefab.block.TexturizerBlockEntity;
 import dev.aurelien.prefab.block.TurretBaseBlockEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -31,6 +32,10 @@ public class ModBlockEntities {
     public static final Supplier<BlockEntityType<LamplighterBlockEntity>> LAMPLIGHTER =
             BLOCK_ENTITIES.register("lamplighter", () ->
                     BlockEntityType.Builder.of(LamplighterBlockEntity::new, ModBlocks.LAMPLIGHTER.get()).build(null));
+
+    public static final Supplier<BlockEntityType<StarterHouseBlockEntity>> STARTER_HOUSE =
+            BLOCK_ENTITIES.register("starter_house", () ->
+                    BlockEntityType.Builder.of(StarterHouseBlockEntity::new, ModBlocks.STARTER_HOUSE.get()).build(null));
 
     public static final Supplier<BlockEntityType<TurretBaseBlockEntity>> TURRET_BASE =
             BLOCK_ENTITIES.register("turret_base", () ->

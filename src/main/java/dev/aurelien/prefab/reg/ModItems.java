@@ -22,6 +22,12 @@ public class ModItems {
     public static final DeferredItem<BlockItem> LAMPLIGHTER =
             ITEMS.registerSimpleBlockItem("lamplighter", ModBlocks.LAMPLIGHTER);
 
+    public static final DeferredItem<BlockItem> STARTER_HOUSE =
+            ITEMS.registerSimpleBlockItem("starter_house", ModBlocks.STARTER_HOUSE);
+
+    public static final DeferredItem<BlockItem> WOODEN_FRAME =
+            ITEMS.registerSimpleBlockItem("wooden_frame", ModBlocks.WOODEN_FRAME);
+
     public static final DeferredItem<BlockItem> TURRET_BASE =
             ITEMS.registerSimpleBlockItem("turret_base", ModBlocks.TURRET_BASE);
 

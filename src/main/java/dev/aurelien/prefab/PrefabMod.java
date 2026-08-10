@@ -11,6 +11,7 @@ import dev.aurelien.prefab.network.SetLevelerTargetPayload;
 import dev.aurelien.prefab.network.SetCenterPayload;
 import dev.aurelien.prefab.network.SetOffsetPayload;
 import dev.aurelien.prefab.network.SetStylePayload;
+import dev.aurelien.prefab.network.StarterHouseBuildPayload;
 import dev.aurelien.prefab.network.SetTexturizerCoarseDirtPayload;
 import dev.aurelien.prefab.network.SetTexturizerPalettePayload;
 import dev.aurelien.prefab.network.SetTexturizerRadiusPayload;
@@ -93,5 +94,6 @@ public class PrefabMod {
         registrar.playToServer(SetTurretRangePayload.TYPE, SetTurretRangePayload.STREAM_CODEC, SetTurretRangePayload::handle);
         registrar.playToServer(SetTurretTargetsPayload.TYPE, SetTurretTargetsPayload.STREAM_CODEC, SetTurretTargetsPayload::handle);
         registrar.playToServer(SetCenterPayload.TYPE, SetCenterPayload.STREAM_CODEC, SetCenterPayload::handle);
+        registrar.playToServer(StarterHouseBuildPayload.TYPE, StarterHouseBuildPayload.STREAM_CODEC, StarterHouseBuildPayload::handle);
     }
 }

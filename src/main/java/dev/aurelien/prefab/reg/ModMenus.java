@@ -4,6 +4,7 @@ import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.menu.ControllerMenu;
 import dev.aurelien.prefab.menu.LamplighterMenu;
 import dev.aurelien.prefab.menu.LevelerMenu;
+import dev.aurelien.prefab.menu.StarterHouseMenu;
 import dev.aurelien.prefab.menu.TexturizerMenu;
 import dev.aurelien.prefab.menu.TurretMenu;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -28,6 +29,9 @@ public class ModMenus {
 
     public static final Supplier<MenuType<LamplighterMenu>> LAMPLIGHTER =
             MENUS.register("lamplighter", () -> IMenuTypeExtension.create(LamplighterMenu::new));
+
+    public static final Supplier<MenuType<StarterHouseMenu>> STARTER_HOUSE =
+            MENUS.register("starter_house", () -> IMenuTypeExtension.create(StarterHouseMenu::new));
 
     public static final Supplier<MenuType<TurretMenu>> TURRET =
             MENUS.register("turret", () -> IMenuTypeExtension.create(TurretMenu::new));

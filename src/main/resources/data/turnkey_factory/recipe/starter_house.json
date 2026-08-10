@@ -1,0 +1,22 @@
+{
+  "__comment": "Le contenu de la maison, dispose comme elle : l'eclairage en haut, l'ossature encadrant le foyer, le rangement et la cuisson au sol. Le lit passe par le tag pour que la couleur n'ait pas d'importance.",
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "LBL",
+    "WCW",
+    "HFH"
+  ],
+  "key": {
+    "L": { "item": "minecraft:lantern" },
+    "B": { "tag": "minecraft:beds" },
+    "W": { "item": "turnkey_factory:wooden_frame" },
+    "C": { "item": "minecraft:campfire" },
+    "H": { "item": "minecraft:chest" },
+    "F": { "item": "minecraft:furnace" }
+  },
+  "result": {
+    "id": "turnkey_factory:starter_house",
+    "count": 1
+  }
+}

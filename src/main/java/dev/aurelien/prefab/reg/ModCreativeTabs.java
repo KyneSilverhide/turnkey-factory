@@ -24,6 +24,9 @@ public class ModCreativeTabs {
                 output.accept(ModItems.LEVELER.get());
                 output.accept(ModItems.TEXTURIZER.get());
                 output.accept(ModItems.LAMPLIGHTER.get());
+                // Le kit de maison puis son composant : l'ordre dans lequel on les découvre.
+                output.accept(ModItems.STARTER_HOUSE.get());
+                output.accept(ModItems.WOODEN_FRAME.get());
                 // Le socle avant l'arme : c'est l'ordre dans lequel on les pose. Un seul socle est
                 // jamais visible — le cinétique remplace celui à charbon dès que Create est chargé
                 // (cf. ModBlocks#TURRET_BASE), il n'y a donc pas de choix à faire pour le joueur.

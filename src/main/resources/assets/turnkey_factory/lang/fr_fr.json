@@ -4,6 +4,8 @@
   "block.turnkey_factory.leveler": "Niveleuse",
   "block.turnkey_factory.texturizer": "Texturiseur de sol",
   "block.turnkey_factory.lamplighter": "Allumeur de réverbères",
+  "block.turnkey_factory.starter_house": "Kit de maison de départ",
+  "block.turnkey_factory.wooden_frame": "Ossature en bois",
   "block.turnkey_factory.turret_base": "Socle de tourelle",
   "block.turnkey_factory.turret_base_create": "Socle de tourelle cinétique",
   "block.turnkey_factory.turret_machinegun": "Mitrailleuse",
@@ -151,5 +153,10 @@
   "gui.turnkey_factory.book.dimensions": "%s×%s×%s",
   "gui.turnkey_factory.book.missing": "  manque %s",
   "gui.turnkey_factory.book.all_available": "Tout est disponible.",
-  "gui.turnkey_factory.book.missing_resources": "Il manque des ressources."
+  "gui.turnkey_factory.book.missing_resources": "Il manque des ressources.",
+  "gui.turnkey_factory.starter_house.contents": "Ce que vous obtenez",
+  "gui.turnkey_factory.starter_house.contents.detail": "Une cabane meublée : lit, coffres et tonneaux, four et fumoir, établi, bibliothèque et métier à tisser, lanternes, et un balcon à balustrade. La porte regarde du côté où vous avez posé le bloc.",
+  "gui.turnkey_factory.starter_house.size": "Emprise %s × %s × %s, centrée sur ce bloc.",
+  "gui.turnkey_factory.starter_house.warning": "Instantané et définitif : tout ce qui est dans le contour est écrasé, et ce bloc est consommé.",
+  "gui.turnkey_factory.starter_house.build": "Construire"
 }

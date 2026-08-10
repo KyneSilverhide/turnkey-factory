@@ -1,0 +1,9 @@
+{
+  "__comment": "Le plan est punaise sur la face NORD du modele. FACING pointe du bloc vers le joueur qui l'a pose, et le schema est dessine porte au nord : la face au plan annonce donc exactement ou tombera la porte.",
+  "variants": {
+    "facing=north": { "model": "turnkey_factory:block/starter_house" },
+    "facing=east": { "model": "turnkey_factory:block/starter_house", "y": 90 },
+    "facing=south": { "model": "turnkey_factory:block/starter_house", "y": 180 },
+    "facing=west": { "model": "turnkey_factory:block/starter_house", "y": 270 }
+  }
+}

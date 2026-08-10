@@ -9,6 +9,7 @@ import dev.aurelien.prefab.PrefabMod;
 import dev.aurelien.prefab.block.ControllerBlockEntity;
 import dev.aurelien.prefab.block.LamplighterBlockEntity;
 import dev.aurelien.prefab.block.LevelerBlockEntity;
+import dev.aurelien.prefab.block.StarterHouseBlockEntity;
 import dev.aurelien.prefab.block.TexturizerBlockEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -49,6 +50,7 @@ public class GhostRenderer {
     private static List<LevelerBlockEntity> cachedLevelers = List.of();
     private static List<TexturizerBlockEntity> cachedTexturizers = List.of();
     private static List<LamplighterBlockEntity> cachedLamplighters = List.of();
+    private static List<StarterHouseBlockEntity> cachedStarterHouses = List.of();
 
     /**
      * Variante de {@link RenderType#lines()} qui ignore le tampon de profondeur (test « toujours vrai »,
@@ -117,7 +119,9 @@ public class GhostRenderer {
         List<LevelerBlockEntity> levelers = cachedLevelers;
         List<TexturizerBlockEntity> texturizers = cachedTexturizers;
         List<LamplighterBlockEntity> lamplighters = cachedLamplighters;
-        if (controllers.isEmpty() && levelers.isEmpty() && texturizers.isEmpty() && lamplighters.isEmpty()) {
+        List<StarterHouseBlockEntity> starterHouses = cachedStarterHouses;
+        if (controllers.isEmpty() && levelers.isEmpty() && texturizers.isEmpty() && lamplighters.isEmpty()
+                && starterHouses.isEmpty()) {
             return;
         }
 
@@ -179,6 +183,15 @@ public class GhostRenderer {
             renderRangeBoundary(pose, vc, be.originPos(), be.range(), 1.0f, 0.85f, 0.3f, 0.8f);
         }
 
+        for (StarterHouseBlockEntity be : starterHouses) {
+            if (be.isRemoved()) continue; // le cache n'est rafraîchi que toutes les RESCAN_INTERVAL frames
+            // Une seule boîte, sans indicateur d'obstruction : la maison écrase tout ce qui se trouve
+            // dans son emprise (cf. StarterHouseBlockEntity#build). Le fantôme répond donc à « qu'est-ce
+            // qui va disparaître », pas à « est-ce que ça passe » — d'où la teinte d'avertissement,
+            // la même que celle du texte de l'interface.
+            LevelRenderer.renderLineBox(pose, vc, be.previewBox(), 1.0f, 0.75f, 0.25f, 0.9f);
+        }
+
         // Flush du tampon "vc" AVANT de démarrer le second (RenderType différent) : getBuffer() sur un
         // nouveau type shared termine implicitement le batch précédent, donc réutiliser "vc" après ce
         // point planterait (BufferBuilder déjà finalisé). D'où cette passe forcément en dernier.
@@ -215,6 +228,7 @@ public class GhostRenderer {
         List<LevelerBlockEntity> levelers = new ArrayList<>();
         List<TexturizerBlockEntity> texturizers = new ArrayList<>();
         List<LamplighterBlockEntity> lamplighters = new ArrayList<>();
+        List<StarterHouseBlockEntity> starterHouses = new ArrayList<>();
         int camChunkX = Mth.floor(cam.x) >> 4;
         int camChunkZ = Mth.floor(cam.z) >> 4;
         int chunkRadius = (RENDER_RADIUS >> 4) + 1;
@@ -243,6 +257,9 @@ public class GhostRenderer {
                     } else if (be instanceof LamplighterBlockEntity lamplighter
                             && lamplighter.getBlockPos().distToCenterSqr(cam.x, cam.y, cam.z) <= radiusSqr) {
                         lamplighters.add(lamplighter);
+                    } else if (be instanceof StarterHouseBlockEntity starterHouse
+                            && starterHouse.getBlockPos().distToCenterSqr(cam.x, cam.y, cam.z) <= radiusSqr) {
+                        starterHouses.add(starterHouse);
                     }
                 }
             }
@@ -251,6 +268,7 @@ public class GhostRenderer {
         cachedLevelers = levelers;
         cachedTexturizers = texturizers;
         cachedLamplighters = lamplighters;
+        cachedStarterHouses = starterHouses;
     }
 
     /**
