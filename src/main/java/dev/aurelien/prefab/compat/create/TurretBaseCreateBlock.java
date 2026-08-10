@@ -46,13 +46,15 @@ import java.util.List;
  * <ul>
  *   <li>un arbre vertical raccordé par le dessous ({@link #hasShaftTowards}, axe Y) ;</li>
  *   <li>{@code implements ICogWheel} sans surcharger {@code isLargeCog()} classe ce bloc comme
- *       "petit engrenage" par défaut (cf. {@code ICogWheel#isSmallCog}) : un grand engrenage (Large
- *       Cogwheel) posé contre n'importe quel côté horizontal s'engrène directement dedans malgré
- *       l'axe perpendiculaire, exactement le mécanisme qu'utilise la meule pour son engrenage
- *       visible en façade (vérifié par javap sur {@code RotationPropagator.getRotationSpeedModifier}
- *       — {@code isLargeToSmallCog}, pas de documentation officielle pour ce mécanisme). Un petit
- *       Cogwheel (non "large") ou un arbre horizontal ne s'y engrènent PAS : seul un Large Cogwheel
- *       le peut.</li>
+ *       "petit engrenage" par défaut (cf. {@code ICogWheel#isSmallCog}) : n'importe quel Cogwheel
+ *       (petit OU grand) posé contre un côté horizontal s'engrène directement dedans, exactement le
+ *       mécanisme qu'utilise la meule pour son engrenage visible en façade — vérifié par javap sur
+ *       {@code RotationPropagator.getRotationSpeedModifier} (pas de documentation officielle pour ce
+ *       mécanisme) : la branche "deux petits engrenages adjacents, même axe" existe à part entière
+ *       (ratio 1:1, cf. {@code isConnected}) et ne passe PAS par {@code isLargeToSmallCog}, qui ne
+ *       gère que le cas où l'un des deux est grand (ratio 2:1). Un arbre horizontal, lui, ne s'y
+ *       engrène jamais : {@code Shaft} n'implémente pas {@code ICogWheel}, il ne rentre dans aucune
+ *       des deux branches.</li>
  * </ul>
  * Ni l'un ni l'autre n'est visuellement évident depuis l'extérieur : {@link #appendHoverText} les
  * rend explicites plutôt que de compter sur l'intuition du joueur.
