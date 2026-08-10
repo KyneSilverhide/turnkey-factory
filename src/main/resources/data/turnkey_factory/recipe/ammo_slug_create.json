@@ -1,5 +1,5 @@
 {
-  "__comment": "Assemblage sequence : lingot de fer -> presse -> depot d'un silex (le noyau perforant) -> depot d'une pepite quelconque (la ceinture). 'loops' multiplie chaque etape, donc le cout reel est 1 lingot + 2 silex + 2 pepites pour 8 obus. Le silex est illimite (cobble -> broyage -> gravier -> broyage -> silex, 100% a chaque etape), ce qui rend la ligne autonome depuis un simple generateur de cobble.",
+  "__comment": "Assemblage sequence : lingot de fer -> depot d'un silex (le noyau perforant) -> depot d'une pepite quelconque (la ceinture) -> presse (ecrasement final). La presse est deliberement la DERNIERE etape : Create demarre une sequenced_assembly quand l'ingredient brut passe dans la machine de la premiere etape, donc si la presse etait en tete, tout lingot de fer presse directement entrerait en concurrence avec la recette vanilla iron_ingot -> iron_sheet (et pouvait la casser). En la mettant en fin de sequence, l'ecrasement ne s'applique qu'a l'objet intermediaire deja engage. 'loops' multiplie chaque etape, donc le cout reel est 1 lingot + 2 silex + 2 pepites pour 8 obus. Le silex est illimite (cobble -> broyage -> gravier -> broyage -> silex, 100% a chaque etape), ce qui rend la ligne autonome depuis un simple generateur de cobble.",
   "neoforge:conditions": [
     {
       "type": "neoforge:mod_loaded",
@@ -15,15 +15,6 @@
   ],
   "sequence": [
     {
-      "type": "create:pressing",
-      "ingredients": [
-        { "item": "turnkey_factory:incomplete_ammo_slug" }
-      ],
-      "results": [
-        { "id": "turnkey_factory:incomplete_ammo_slug" }
-      ]
-    },
-    {
       "type": "create:deploying",
       "ingredients": [
         { "item": "turnkey_factory:incomplete_ammo_slug" },
@@ -38,6 +29,15 @@
       "ingredients": [
         { "item": "turnkey_factory:incomplete_ammo_slug" },
         { "tag": "c:nuggets" }
+      ],
+      "results": [
+        { "id": "turnkey_factory:incomplete_ammo_slug" }
+      ]
+    },
+    {
+      "type": "create:pressing",
+      "ingredients": [
+        { "item": "turnkey_factory:incomplete_ammo_slug" }
       ],
       "results": [
         { "id": "turnkey_factory:incomplete_ammo_slug" }
