@@ -36,6 +36,8 @@ bin/
 # Classes Create décompilées (référence de dev, hors build, non distribuables)
 /com/
 __pycache__/
+# Jeton d'API CurseForge (secret local, jamais commit)
+.curseforge_token
 
 ### Minecraft Modding ###
 run/

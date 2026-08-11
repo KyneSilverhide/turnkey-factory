@@ -3,6 +3,9 @@ plugins {
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.141'
     id 'idea'
+    // Pinned below 1.2.x: newer releases require a Java 25 build JVM, which isn't what runs this
+    // Gradle build (Java 21 toolchain). Bump once the dev machine/CI moves to a JDK 25 Gradle daemon.
+    id 'net.darkhax.curseforgegradle' version '1.1.28'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -177,6 +180,36 @@ publishing {
             url "file://${project.projectDir}/repo"
         }
     }
+}
+
+// Publishes the mod jar to CurseForge (https://www.curseforge.com/minecraft/mc-mods/turnkey-factory,
+// project id in gradle.properties). Workflow: bump mod_version, update changelog.md with the new
+// release's notes, then run `./gradlew publishCurseForge`. Game version/loader/Java tags are passed
+// by NAME (never CurseForge's numeric version IDs, which are ambiguous — several unrelated categories
+// share the name "1.21.1") ; the plugin resolves them against the right category itself. They're set
+// explicitly rather than left to the plugin's own auto-detection (VersionDetector), which on the
+// pinned 1.1.x line doesn't yet know about net.neoforged.moddev or the Client/Server split.
+// The API token is never stored in gradle.properties or passed on the command line: it's read from a
+// local, gitignored `.curseforge_token` file (one line, generated at
+// https://legacy.curseforge.com/account/api-tokens), so it never ends up in shell history or CI logs.
+tasks.register("publishCurseForge", net.darkhax.curseforgegradle.TaskPublishCurseForge) {
+    group = "publishing"
+    description = "Uploads the mod jar to CurseForge using changelog.md as the release notes."
+
+    def tokenFile = file(".curseforge_token")
+    apiToken = tokenFile.exists() ? tokenFile.text.trim() : findProperty("curseforge_token")
+
+    def mainArtifact = upload(curseforge_project_id, tasks.jar)
+    mainArtifact.changelog = file("changelog.md")
+    mainArtifact.changelogType = "markdown"
+    mainArtifact.displayName = "${mod_name} ${mod_version}"
+    mainArtifact.releaseType = "release"
+    // Declared explicitly rather than relying on auto-detection: the plugin version pinned above
+    // (see comment on the `id` line) predates NeoForge/Client-Server auto-detection.
+    mainArtifact.addGameVersion(minecraft_version)
+    mainArtifact.addModLoader("NeoForge")
+    mainArtifact.addEnvironment("Client", "Server")
+    mainArtifact.addJavaVersion("Java 21")
 }
 
 tasks.withType(JavaCompile).configureEach {
