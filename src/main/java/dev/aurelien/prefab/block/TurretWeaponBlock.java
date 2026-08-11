@@ -222,6 +222,19 @@ public class TurretWeaponBlock extends Block {
         super.appendHoverText(stack, context, tooltip, flag);
         String id = getDescriptionId();
         TooltipHelper.machine(tooltip, id,
+                baseRequirementLine(),
                 Component.translatable(id + ".tooltip.req_1").withStyle(ChatFormatting.GRAY));
+    }
+
+    /**
+     * Première ligne de prérequis, commune à toutes les armes : aucune ne tire posée seule, il lui
+     * faut un socle en dessous. Partagée ici plutôt que répétée dans chaque sous-classe qui redéfinit
+     * {@code appendHoverText} (cf. {@link TurretFlamethrowerBlock}) — c'est un {@code req}, donc
+     * passée à {@link dev.aurelien.prefab.util.TooltipHelper#machine} comme les autres, derrière
+     * SHIFT : la mettre hors de ce mécanisme afficherait une ligne fixe après l'invite « Hold SHIFT »,
+     * qui doit rester la dernière ligne quand SHIFT n'est pas maintenu.
+     */
+    protected static Component baseRequirementLine() {
+        return Component.translatable("block.turnkey_factory.turret_weapon.tooltip.base").withStyle(ChatFormatting.GRAY);
     }
 }

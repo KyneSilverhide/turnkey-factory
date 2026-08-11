@@ -169,20 +169,23 @@ public class TurretFlamethrowerBlock extends TurretWeaponBlock {
     }
 
     /**
-     * Ne rappelle PAS {@link TurretWeaponBlock#appendHoverText} : ce parent n'affiche qu'une seule
-     * ligne de prérequis (celle de la mitrailleuse), alors que le lance-flammes en a deux (capacité du
-     * réservoir + avertissement de vidange) — les résoudre toutes les deux ici, via le même
+     * N'appelle PAS {@link TurretWeaponBlock#appendHoverText} : ce parent affiche la ligne de
+     * prérequis de la mitrailleuse, alors que le lance-flammes en a deux (capacité du réservoir +
+     * avertissement de vidange) — les résoudre toutes les deux ici, via le même
      * {@link dev.aurelien.prefab.util.TooltipHelper#machine}, évite d'appeler la méthode du parent
      * deux fois (et donc de dupliquer la ligne de résumé). Le carburant ne se devine ni au modèle ni à
      * la recette — c'est la question qu'on se pose en premier ; la seconde ligne prévient que casser
      * le socle vide le réservoir, comme pour toute l'énergie stockée d'un socle (la charge de charbon
      * part déjà de la même façon), mais huit seaux de lave qui disparaissent se remarquent bien plus
-     * qu'un compteur de tirs.
+     * qu'un compteur de tirs. La ligne « à poser sur un socle » reste commune aux deux armes :
+     * {@link TurretWeaponBlock#baseRequirementLine} fournit la même ligne en tête des prérequis, sans
+     * dupliquer sa clé de traduction.
      */
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         String id = getDescriptionId();
         TooltipHelper.machine(tooltip, id,
+                baseRequirementLine(),
                 Component.translatable(id + ".tooltip.req_1", TurretTank.BUCKETS, LAVA_PER_SHOT)
                         .withStyle(ChatFormatting.GRAY),
                 Component.translatable(id + ".tooltip.req_2").withStyle(ChatFormatting.DARK_GRAY));

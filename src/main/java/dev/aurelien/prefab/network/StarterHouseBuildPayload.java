@@ -31,11 +31,12 @@ public record StarterHouseBuildPayload(BlockPos pos) implements CustomPacketPayl
             if (!(ctx.player().level() instanceof ServerLevel level)) return;
             if (!(level.getBlockEntity(p.pos()) instanceof StarterHouseBlockEntity be)) return;
 
-            // Fermer AVANT de bâtir : la pose écrase le bloc sur lequel ce menu est ouvert, et un
-            // menu adossé à un BlockEntity disparu se ferait de toute façon invalider à la volée
-            // (stillValid) — autant que ce soit franc et sans une frame d'écran fantôme.
+            if (!be.build(level)) return;
+
+            // Fermer APRÈS la pose : le bloc n'a été retiré que si build() a réussi, et un menu
+            // adossé à un BlockEntity disparu se ferait de toute façon invalider à la volée
+            // (stillValid). Sur l'échec (schéma introuvable), le bloc et le menu restent en place.
             ctx.player().closeContainer();
-            be.build(level);
         });
     }
 }

@@ -50,6 +50,8 @@
   "block.turnkey_factory.turret_flamethrower.tooltip.req_1": "Fonctionne à la lave — seau sur le socle ou tuyau (%s seaux, %s mB/tir).",
   "block.turnkey_factory.turret_flamethrower.tooltip.req_2": "Casser le socle vide le réservoir — videz-le avant de déplacer la tourelle.",
 
+  "block.turnkey_factory.turret_weapon.tooltip.base": "À poser sur un socle de tourelle",
+
   "item.turnkey_factory.architect_blueprint": "Plan d'architecte",
   "item.turnkey_factory.architect_blueprint.tooltip": "Composant de recette du bloc de contrôle d'usine.",
   "item.turnkey_factory.control_core": "Cœur de contrôle",

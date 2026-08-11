@@ -50,6 +50,8 @@
   "block.turnkey_factory.turret_flamethrower.tooltip.req_1": "Runs on lava — pour a bucket on the base or pipe it in (%s buckets, %s mB/shot).",
   "block.turnkey_factory.turret_flamethrower.tooltip.req_2": "Breaking the base empties its tank — drain it before moving the turret.",
 
+  "block.turnkey_factory.turret_weapon.tooltip.base": "Must be placed on a turret base",
+
   "item.turnkey_factory.architect_blueprint": "Architect's Blueprint",
   "item.turnkey_factory.architect_blueprint.tooltip": "Crafting component for the Factory Controller.",
   "item.turnkey_factory.control_core": "Control Core",

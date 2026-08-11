@@ -2,7 +2,6 @@ package dev.aurelien.prefab.block;
 
 import com.mojang.serialization.MapCodec;
 import dev.aurelien.prefab.util.TooltipHelper;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
@@ -121,9 +120,6 @@ public class TurretBaseBlock extends Block implements EntityBlock, ITurretBase {
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
-        String id = getDescriptionId();
-        TooltipHelper.machine(tooltip, id,
-                Component.translatable(id + ".tooltip.req_1").withStyle(ChatFormatting.GRAY),
-                Component.translatable(id + ".tooltip.req_2").withStyle(ChatFormatting.GRAY));
+        TooltipHelper.machine(tooltip, getDescriptionId(), 2);
     }
 }

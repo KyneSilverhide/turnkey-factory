@@ -38,6 +38,20 @@ public final class TooltipHelper {
         }
     }
 
+    /**
+     * Cas courant de {@link #machine}: {@code reqCount} lignes de prérequis, toutes en GRAY, générées
+     * depuis les clés {@code <descriptionId>.tooltip.req_1}..{@code req_<reqCount>}. La plupart des
+     * machines du mod n'ont besoin de rien de plus ; celles dont une ligne a un style différent (ex.
+     * l'avertissement DARK_GRAY du lance-flammes) continuent d'appeler {@link #machine} directement.
+     */
+    public static void machine(List<Component> tooltip, String descriptionId, int reqCount) {
+        Component[] reqLines = new Component[reqCount];
+        for (int i = 0; i < reqCount; i++) {
+            reqLines[i] = Component.translatable(descriptionId + ".tooltip.req_" + (i + 1)).withStyle(ChatFormatting.GRAY);
+        }
+        machine(tooltip, descriptionId, reqLines);
+    }
+
     /** Tooltip d'une ligne, toujours visible — composants intermédiaires sans détail supplémentaire. */
     public static void simple(List<Component> tooltip, String descriptionId) {
         tooltip.add(Component.translatable(descriptionId + ".tooltip").withStyle(ChatFormatting.GRAY));

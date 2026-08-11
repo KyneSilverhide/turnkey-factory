@@ -6,6 +6,7 @@ import dev.aurelien.prefab.menu.StarterHouseMenu;
 import dev.aurelien.prefab.reg.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -117,6 +118,16 @@ public class StarterHouseBlockEntity extends BlockEntity implements MenuProvider
             // le bloc en place plutôt que de le détruire sans rien construire en échange.
             LOGGER.error("Schéma de maison de départ introuvable : {}", TEMPLATE);
             return false;
+        }
+        Vec3i size = template.getSize();
+        if (size.getX() != SIZE_X || size.getY() != SIZE_Y || size.getZ() != SIZE_Z) {
+            // SIZE_X/Y/Z, ANCHOR et PIVOT sont dérivés à la main de starter_house.nbt (cf. javadoc de
+            // la classe) : un ré-export au gabarit différent romprait silencieusement le fantôme et le
+            // texte d'emprise du GUI. On n'annule pas la pose pour autant — placeInWorld() se base sur
+            // le schéma réel, pas sur ces constantes, donc la construction elle-même reste correcte —
+            // mais on le signale bruyamment plutôt que de laisser le fantôme mentir sans prévenir.
+            LOGGER.error("Schéma de maison de départ {}×{}×{} ne correspond plus aux constantes {}×{}×{} attendues",
+                    size.getX(), size.getY(), size.getZ(), SIZE_X, SIZE_Y, SIZE_Z);
         }
 
         // Tout capturer AVANT de retirer le bloc : passé removeBlock, ce BlockEntity est détaché du
