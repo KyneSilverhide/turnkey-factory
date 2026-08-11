@@ -26,6 +26,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BushBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -302,12 +303,18 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider,
         }
     }
 
-    /** Les 8 cellules de la fixture doivent être libres : jamais percer un bâtiment ou une frondaison. */
+    /**
+     * Les 8 cellules de la fixture doivent être libres : jamais percer un bâtiment ou une frondaison
+     * ({@code LeafBlock} n'est pas un {@link BushBlock}, donc les feuilles restent bloquantes). La
+     * petite flore au sol ({@link BushBlock} : herbe, fougère, fleur, jeune pousse, culture, buisson
+     * mort...) ne compte en revanche pas comme un obstacle — elle est écrasée à la pose, cf.
+     * {@link #placeLamp}, dans le même esprit que le texturiseur (voir sa javadoc).
+     */
     private static boolean hasClearance(ServerLevel server, BlockPos pole, Direction dir) {
         for (BlockPos cell : FixtureLayout.of(pole, dir).cells()) {
             if (!server.isLoaded(cell)) return false;
             BlockState state = server.getBlockState(cell);
-            if (!(state.isAir() || state.canBeReplaced())) return false;
+            if (!(state.isAir() || state.canBeReplaced() || state.getBlock() instanceof BushBlock)) return false;
         }
         return true;
     }
@@ -429,6 +436,15 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider,
     private void placeLamp(ServerLevel server, LampJob job, WoodParts parts) {
         Direction dir = job.dir();
         FixtureLayout f = FixtureLayout.of(job.pole(), dir);
+
+        // Écrase la petite flore tolérée par hasClearance (herbe, fougère, fleur...) avec un drop
+        // normal, comme si un joueur l'avait fauchée, plutôt que de la faire disparaître en silence
+        // sous le setBlock qui suit.
+        for (BlockPos cell : f.cells()) {
+            if (!server.getBlockState(cell).isAir()) {
+                server.destroyBlock(cell, true);
+            }
+        }
 
         server.setBlock(f.wall(), Blocks.COBBLESTONE_WALL.defaultBlockState(), Block.UPDATE_ALL);
         server.setBlock(f.fence1(), parts.fence().defaultBlockState(), Block.UPDATE_ALL);

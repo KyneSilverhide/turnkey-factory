@@ -3,6 +3,11 @@
   "values": [
     "turnkey_factory:controller",
     "turnkey_factory:leveler",
-    "turnkey_factory:texturizer"
+    "turnkey_factory:texturizer",
+    "turnkey_factory:lamplighter",
+    "turnkey_factory:turret_base",
+    "turnkey_factory:turret_base_create",
+    "turnkey_factory:turret_machinegun",
+    "turnkey_factory:turret_flamethrower"
   ]
 }
