@@ -239,13 +239,15 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider,
     }
 
     /**
-     * Identique au texturiseur (voir sa javadoc pour le détail de la fenêtre de suivi), avec deux
-     * ajouts : une colonne dont le dessus porte déjà notre muret, OU une {@link CenterableMachine}
-     * (nous-mêmes ou une machine voisine centrée sur nous, cf. {@link #originPos()}), est acceptée comme
-     * « sol ouvert » (sinon un lampadaire déjà bâti — ou une machine adjacente — coupe la propagation et
-     * empêche le rayon de s'étendre au-delà, exactement le piège que documente {@code isFinishedTexture}
-     * côté texturiseur) ; et {@link #hasSolidGroundBelow} rejette tout support qui repose sur du vide
-     * (toit, plateforme).
+     * Identique au texturiseur (voir sa javadoc pour le détail de la fenêtre de suivi) : seule
+     * l'identité du bloc de sol compte, jamais ce qui repose dessus (torche, clôture, tuyau Create,
+     * lampadaire déjà bâti, machine voisine...). Mélanger les deux coupait la propagation dès la
+     * première colonne encombrée — exactement le piège que documente {@code isFinishedTexture} côté
+     * texturiseur — alors qu'un lampadaire non plaçable ici ne doit empêcher ni les colonnes voisines
+     * d'être explorées, ni le rayon de s'étendre au-delà. Le dégagement réel de la fixture (8 cellules)
+     * est revérifié séparément par {@link #hasClearance} au moment de la pose, seul endroit où une
+     * obstruction doit faire sauter CE lampadaire précis. {@link #hasSolidGroundBelow} rejette tout
+     * support qui repose sur du vide (toit, plateforme).
      */
     @Nullable
     private static Integer findSurfaceY(ServerLevel server, int x, int z, int refY, BlockPos.MutableBlockPos p) {
@@ -254,14 +256,6 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider,
             if (!server.isLoaded(p)) continue;
             BlockState state = server.getBlockState(p);
             if (!NaturalTerrain.isSurfaceGround(state)) continue;
-
-            p.set(x, y + 1, z);
-            if (!server.isLoaded(p)) continue;
-            BlockState above = server.getBlockState(p);
-            boolean open = above.isAir() || above.canBeReplaced() || above.is(Blocks.COBBLESTONE_WALL)
-                    || server.getBlockEntity(p) instanceof CenterableMachine;
-            if (!open) continue;
-
             if (!hasSolidGroundBelow(server, x, y, z)) continue;
             return y;
         }
