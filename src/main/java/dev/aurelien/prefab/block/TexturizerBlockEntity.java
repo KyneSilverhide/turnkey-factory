@@ -28,11 +28,8 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.BushBlock;
-import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
@@ -300,19 +297,17 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
 
     /**
      * Cherche, autour de {@code refY} (± {@link #STEP_WINDOW}), le bloc de sol naturel OU déjà texturé
-     * le plus haut dont le dessus est ouvert (air ou remplaçable) — la « surface » de cette colonne.
-     * Renvoie {@code null} si rien de tel n'existe dans la fenêtre : la colonne est alors ignorée sans
-     * propager, ce qui épouse les petites pentes tout en arrêtant la propagation sur une vraie falaise,
-     * un trou ou un bloc posé par le joueur. Une {@link CenterableMachine} au-dessus (le texturiseur
-     * lui-même, ou une machine voisine centrée sur lui — cf. {@link #originPos()}) compte comme
-     * « ouvert » : sans ça, la colonne de départ — juste sous une machine — échouait toujours, puisque
-     * la case au-dessus de son propre sol est occupée par un bloc qui n'est ni air ni remplaçable.
-     * Accepter aussi les cellules qui SONT un bloc du motif (cf. {@link #isPaletteBlock}) comme sol
-     * « marchable » est indispensable : sinon, une fois le disque intérieur fini, il forme un mur
-     * infranchissable qui empêche toute extension ultérieure du rayon d'atteindre les nouvelles cellules
-     * au-delà. Ce test reste volontairement basé sur l'état RÉEL du bloc (jamais sur
-     * {@link #dirtTexturedCells}) : sinon un trou creusé après coup dans une case déjà convertie serait
-     * pris pour du sol marchable et la propagation franchirait le trou au lieu de s'y arrêter.
+     * le plus haut dans la fenêtre — la « surface » de cette colonne. Renvoie {@code null} si rien de
+     * tel n'existe dans la fenêtre : la colonne est alors ignorée sans propager, ce qui épouse les
+     * petites pentes tout en arrêtant la propagation sur une vraie falaise ou un trou. Ce qui repose sur
+     * ce sol (torche, clôture, tuyau Create, pousse...) ne rentre PAS en compte ici : le motif remplace
+     * le sol quoi qu'il y ait dessus, cf. {@link #placePattern}. Accepter aussi les cellules qui SONT un
+     * bloc du motif (cf. {@link #isPaletteBlock}) comme sol « marchable » est indispensable : sinon, une
+     * fois le disque intérieur fini, il forme un mur infranchissable qui empêche toute extension
+     * ultérieure du rayon d'atteindre les nouvelles cellules au-delà. Ce test reste volontairement basé
+     * sur l'état RÉEL du bloc (jamais sur {@link #dirtTexturedCells}) : sinon un trou creusé après coup
+     * dans une case déjà convertie serait pris pour du sol marchable et la propagation franchirait le
+     * trou au lieu de s'y arrêter.
      */
     @Nullable
     private Integer findSurfaceY(ServerLevel server, int x, int z, int refY, BlockPos.MutableBlockPos p, Palette palette) {
@@ -320,11 +315,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
             p.set(x, y, z);
             if (!server.isLoaded(p)) continue;
             BlockState state = server.getBlockState(p);
-            if (!NaturalTerrain.isSurfaceGround(state) && !isPaletteBlock(state, palette)) continue;
-            p.set(x, y + 1, z);
-            if (!server.isLoaded(p)) continue;
-            BlockState above = server.getBlockState(p);
-            if (isClearableAbove(above) || server.getBlockEntity(p) instanceof CenterableMachine) return y;
+            if (NaturalTerrain.isSurfaceGround(state) || isPaletteBlock(state, palette)) return y;
         }
         return null;
     }
@@ -336,19 +327,6 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
             if (state.is(mosaicState.getBlock())) return true;
         }
         return false;
-    }
-
-    /**
-     * Vrai si {@code state} peut être silencieusement effacé pour texturer la cellule juste en dessous :
-     * air/remplaçable (herbe, fougère...) OU petite flore (fleur, jeune pousse, champignon, culture...).
-     * {@link BushBlock} couvre la quasi-totalité de la petite flore vanilla/moddée sans jamais inclure un
-     * tronc ou des feuilles (classes distinctes) — donc pas de risque de faire tomber un arbre pour poser
-     * une dalle en dessous. Sans ce test, une case autrement parfaitement texturable (herbe surmontée
-     * d'une fleur, par ex.) n'était jamais ne serait-ce que mise en file : {@link #placePattern} sait
-     * déjà effacer ce qui se trouve au-dessus, encore fallait-il que la cellule soit retenue en premier lieu.
-     */
-    private static boolean isClearableAbove(BlockState state) {
-        return state.isAir() || state.canBeReplaced() || state.getBlock() instanceof BushBlock;
     }
 
     /**
@@ -419,14 +397,6 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
                         done++;
                         continue;
                     }
-                    BlockPos abovePos = pos.above();
-                    BlockState above = server.getBlockState(abovePos);
-                    if (!abovePos.equals(worldPosition) && !isClearableAbove(above)) {
-                        queue.poll();
-                        preview.remove(pos);
-                        done++;
-                        continue;
-                    }
 
                     // Variante « terre grossière + pousse » du motif payant, pas un bonus gratuit : coûte
                     // le même matériau que n'importe quelle autre cellule. Disponible dans les deux motifs
@@ -481,35 +451,24 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     }
 
     /**
-     * Remplace directement le bloc de sol par le motif (aucun butin récupéré ni redéposé). Si de l'herbe,
-     * une fougère ou toute autre pousse se trouvait au-dessus, elle est effacée en silence avant le
-     * remplacement plutôt que laissée se casser toute seule (mise à jour de voisinage automatique du
-     * jeu) : cassée « naturellement », elle aurait une chance de lâcher des graines — exactement le
-     * genre de butin qu'on ne veut pas ici. Si {@code coarseDirtPatch}, pose une parcelle de terre
-     * grossière TOUJOURS accompagnée d'une pousse à la place du motif payant — jamais de terre grossière
-     * nue : c'est soit le motif normal, soit la paire complète. Coûte le même matériau qu'une cellule
-     * normale (cf. {@link #serverTick()}) : ce n'est qu'une variante d'apparence, pas un bonus gratuit.
-     * Pour la colonne d'origine (juste sous la machine), {@code above} est le bloc du texturiseur
-     * lui-même, pas une pousse — {@link #serverTick()} l'autorise explicitement à traverser ce garde-fou
-     * (cf. {@code abovePos.equals(worldPosition)}), donc il ne faut ni l'effacer ni y poser une pousse ici
-     * (seule exception où une parcelle reste sans pousse : la machine occupe déjà la case).
+     * Remplace directement le bloc de sol par le motif (aucun butin du sol lui-même récupéré ni
+     * redéposé). Le sol est retexturé quoi qu'il y ait dessus — torche, clôture, tuyau Create, coffre,
+     * pousse... — et non plus seulement sous de la petite flore : tout ce qui repose sur la cellule est
+     * cassé via {@link ServerLevel#destroyBlock(BlockPos, boolean)} (drop normal, comme si un joueur
+     * l'avait miné) avant le remplacement, tant pis si ça fait tomber une pousse qui n'a plus de support
+     * valable. Si {@code coarseDirtPatch}, pose une parcelle de terre grossière TOUJOURS accompagnée
+     * d'une pousse à la place du motif payant — jamais de terre grossière nue : c'est soit le motif
+     * normal, soit la paire complète. Coûte le même matériau qu'une cellule normale (cf.
+     * {@link #serverTick()}) : ce n'est qu'une variante d'apparence, pas un bonus gratuit. Pour la
+     * colonne d'origine (juste sous la machine), {@code above} est le bloc du texturiseur lui-même : il
+     * ne faut ni le casser ni y poser une pousse ici (seule exception où une parcelle reste sans pousse :
+     * la machine occupe déjà la case).
      */
     private void placePattern(ServerLevel server, BlockPos pos, boolean coarseDirtPatch) {
         BlockPos above = pos.above();
         boolean aboveIsSelf = above.equals(worldPosition);
-        if (!aboveIsSelf) {
-            BlockState aboveState = server.getBlockState(above);
-            if (!aboveState.isAir()) {
-                server.setBlock(above, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
-                // Moitié basse d'une plante à double hauteur (tournesol, lilas, herbe/fougère hautes...) :
-                // n'effacer que celle-ci laisserait la moitié haute flotter, sans jamais se casser toute
-                // seule (UPDATE_CLIENTS ne déclenche volontairement aucune mise à jour de voisinage, cf.
-                // plus haut — donc pas de recalcul automatique du support de la moitié haute non plus).
-                if (aboveState.getBlock() instanceof DoublePlantBlock
-                        && aboveState.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.LOWER) {
-                    server.setBlock(above.above(), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
-                }
-            }
+        if (!aboveIsSelf && !server.getBlockState(above).isAir()) {
+            server.destroyBlock(above, true);
         }
 
         BlockState placed = coarseDirtPatch
