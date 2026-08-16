@@ -1,6 +1,7 @@
 package dev.aurelien.prefab.block;
 
 import dev.aurelien.prefab.build.InventoryNetwork;
+import dev.aurelien.prefab.config.PrefabServerConfig;
 import dev.aurelien.prefab.menu.TurretMenu;
 import dev.aurelien.prefab.reg.ModBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -44,18 +45,19 @@ import java.util.List;
  * (1600 ticks) vaut 8 tirs — le même nombre d'objets qu'il peut cuire.
  */
 public class TurretBaseBlockEntity extends BlockEntity implements MenuProvider, ITurret {
-    public static final int MIN_RANGE = TurretCombat.MIN_RANGE;
-    public static final int MAX_RANGE = TurretCombat.MAX_RANGE;
+    public static int minRange() { return TurretCombat.minRange(); }
+    public static int maxRange() { return TurretCombat.maxRange(); }
     public static final int DEFAULT_RANGE = TurretCombat.DEFAULT_RANGE;
 
     private static final int LINK_SCAN_INTERVAL = 20;
     private static final int TICKS_PER_SHOT = 200;
     private static final int MAX_SHOTS = 512;
 
-    /** Cadence fixe : le charbon fournit de l'énergie, pas de la vitesse — rien à faire varier ici,
-     *  contrairement à la variante Create dont la cadence suit le régime du réseau cinétique. */
+    /** Cadence réglable via {@link PrefabServerConfig#TURRET_FIRE_INTERVAL_TICKS} — le charbon fournit
+     *  de l'énergie, pas de la vitesse, contrairement à la variante Create dont la cadence suit le
+     *  régime du réseau cinétique (elle ignore ce réglage, cf. {@code TurretBaseCreateBlockEntity}). */
     private final TurretCombat combat = new TurretCombat(this, this::tryConsumeShot, this::syncToClient,
-            () -> {}, () -> TurretCombat.DEFAULT_FIRE_INTERVAL);
+            () -> {}, () -> PrefabServerConfig.TURRET_FIRE_INTERVAL_TICKS.get());
 
     /** Réservoir de lave du socle : sert au lance-flammes, ignoré par les autres armes (cf. {@link TurretTank}). */
     private final TurretTank tank = new TurretTank(this::syncToClient);

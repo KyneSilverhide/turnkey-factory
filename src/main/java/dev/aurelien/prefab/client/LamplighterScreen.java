@@ -72,24 +72,24 @@ public class LamplighterScreen extends MachineScreen<LamplighterMenu> {
         }
 
         addRenderableWidget(Button.builder(Component.literal("-"), b -> {
-            range = Mth.clamp(range - 1, LamplighterBlockEntity.MIN_RANGE, LamplighterBlockEntity.MAX_RANGE);
+            range = Mth.clamp(range - 1, LamplighterBlockEntity.minRange(), LamplighterBlockEntity.maxRange());
             sendRange();
         }).bounds(leftPos + MINUS_X, topPos + Y_RANGE, SMALL_BTN_W, BTN_H).build());
         addRenderableWidget(Button.builder(Component.literal("+"), b -> {
-            range = Mth.clamp(range + 1, LamplighterBlockEntity.MIN_RANGE, LamplighterBlockEntity.MAX_RANGE);
+            range = Mth.clamp(range + 1, LamplighterBlockEntity.minRange(), LamplighterBlockEntity.maxRange());
             sendRange();
         }).bounds(leftPos + PLUS_X, topPos + Y_RANGE, SMALL_BTN_W, BTN_H).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.turnkey_factory.lamplighter.max"), b -> {
-            range = LamplighterBlockEntity.MAX_RANGE;
+            range = LamplighterBlockEntity.maxRange();
             sendRange();
         }).bounds(leftPos + MAX_X, topPos + Y_RANGE, MAX_BTN_W, BTN_H).build());
 
         addRenderableWidget(Button.builder(Component.literal("-"), b -> {
-            spacing = Mth.clamp(spacing - 1, LamplighterBlockEntity.MIN_SPACING, LamplighterBlockEntity.MAX_SPACING);
+            spacing = Mth.clamp(spacing - 1, LamplighterBlockEntity.minSpacing(), LamplighterBlockEntity.maxSpacing());
             sendSpacing();
         }).bounds(leftPos + MINUS_X, topPos + Y_SPACING, SMALL_BTN_W, BTN_H).build());
         addRenderableWidget(Button.builder(Component.literal("+"), b -> {
-            spacing = Mth.clamp(spacing + 1, LamplighterBlockEntity.MIN_SPACING, LamplighterBlockEntity.MAX_SPACING);
+            spacing = Mth.clamp(spacing + 1, LamplighterBlockEntity.minSpacing(), LamplighterBlockEntity.maxSpacing());
             sendSpacing();
         }).bounds(leftPos + PLUS_X, topPos + Y_SPACING, SMALL_BTN_W, BTN_H).build());
 

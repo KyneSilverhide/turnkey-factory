@@ -81,15 +81,15 @@ public class TexturizerScreen extends MachineScreen<TexturizerMenu> {
         }
 
         addRenderableWidget(Button.builder(Component.literal("-"), b -> {
-            radius = Mth.clamp(radius - 1, TexturizerBlockEntity.MIN_RADIUS, TexturizerBlockEntity.MAX_RADIUS);
+            radius = Mth.clamp(radius - 1, TexturizerBlockEntity.minRadius(), TexturizerBlockEntity.maxRadius());
             sendRadius();
         }).bounds(leftPos + MINUS_X, topPos + Y_RADIUS, SMALL_BTN_W, BTN_H).build());
         addRenderableWidget(Button.builder(Component.literal("+"), b -> {
-            radius = Mth.clamp(radius + 1, TexturizerBlockEntity.MIN_RADIUS, TexturizerBlockEntity.MAX_RADIUS);
+            radius = Mth.clamp(radius + 1, TexturizerBlockEntity.minRadius(), TexturizerBlockEntity.maxRadius());
             sendRadius();
         }).bounds(leftPos + PLUS_X, topPos + Y_RADIUS, SMALL_BTN_W, BTN_H).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.turnkey_factory.texturizer.max"), b -> {
-            radius = TexturizerBlockEntity.MAX_RADIUS;
+            radius = TexturizerBlockEntity.maxRadius();
             sendRadius();
         }).bounds(leftPos + MAX_X, topPos + Y_RADIUS, MAX_BTN_W, BTN_H).build());
 

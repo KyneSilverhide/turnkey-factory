@@ -1,6 +1,7 @@
 package dev.aurelien.prefab.block;
 
 import com.mojang.serialization.MapCodec;
+import dev.aurelien.prefab.config.PrefabServerConfig;
 import dev.aurelien.prefab.util.TooltipHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -47,7 +48,7 @@ public class TurretFlamethrowerBlock extends TurretWeaponBlock {
      * palier haut a justement été tempéré une fois ce chiffre observé en jeu). Le seau à la main est
      * un dépannage ; un lance-flammes qui tourne vraiment veut un tuyau.
      */
-    public static final int LAVA_PER_SHOT = 125;
+    public static int lavaPerShot() { return PrefabServerConfig.TURRET_FLAMETHROWER_LAVA_PER_SHOT.get(); }
 
     /** 2.0 contre 3.0 pour la mitrailleuse à munition pleine : l'embrasement paie la différence. */
     private static final float BASE_DAMAGE = 2.0f;
@@ -85,18 +86,18 @@ public class TurretFlamethrowerBlock extends TurretWeaponBlock {
 
     @Override
     public int tankCostPerShot() {
-        return LAVA_PER_SHOT;
+        return lavaPerShot();
     }
 
     @Override
     public boolean hasAmmo(ServerLevel server, ITurret turret, List<BlockPos> linked) {
-        return turret.tank().has(LAVA_PER_SHOT);
+        return turret.tank().has(lavaPerShot());
     }
 
     @Override
     @Nullable
     public Shot consumeShot(ServerLevel server, ITurret turret, List<BlockPos> linked) {
-        if (!turret.tank().tryDrain(LAVA_PER_SHOT)) return null;
+        if (!turret.tank().tryDrain(lavaPerShot())) return null;
         return new Shot(BASE_DAMAGE, IGNITE_SECONDS, SLOWNESS_TICKS, SLOWNESS_AMPLIFIER);
     }
 
@@ -186,7 +187,7 @@ public class TurretFlamethrowerBlock extends TurretWeaponBlock {
         String id = getDescriptionId();
         TooltipHelper.machine(tooltip, id,
                 baseRequirementLine(),
-                Component.translatable(id + ".tooltip.req_1", TurretTank.BUCKETS, LAVA_PER_SHOT)
+                Component.translatable(id + ".tooltip.req_1", TurretTank.BUCKETS, lavaPerShot())
                         .withStyle(ChatFormatting.GRAY),
                 Component.translatable(id + ".tooltip.req_2").withStyle(ChatFormatting.DARK_GRAY));
     }

@@ -68,15 +68,15 @@ public class LevelerScreen extends MachineScreen<LevelerMenu> {
         }
 
         addRenderableWidget(Button.builder(Component.literal("-"), b -> {
-            range = Mth.clamp(range - 1, LevelerBlockEntity.MIN_RANGE, LevelerBlockEntity.MAX_RANGE);
+            range = Mth.clamp(range - 1, LevelerBlockEntity.minRange(), LevelerBlockEntity.maxRange());
             sendRange();
         }).bounds(leftPos + MINUS_X, topPos + Y_RANGE, SMALL_BTN_W, BTN_H).build());
         addRenderableWidget(Button.builder(Component.literal("+"), b -> {
-            range = Mth.clamp(range + 1, LevelerBlockEntity.MIN_RANGE, LevelerBlockEntity.MAX_RANGE);
+            range = Mth.clamp(range + 1, LevelerBlockEntity.minRange(), LevelerBlockEntity.maxRange());
             sendRange();
         }).bounds(leftPos + PLUS_X, topPos + Y_RANGE, SMALL_BTN_W, BTN_H).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.turnkey_factory.leveler.max"), b -> {
-            range = LevelerBlockEntity.MAX_RANGE;
+            range = LevelerBlockEntity.maxRange();
             sendRange();
         }).bounds(leftPos + MAX_X, topPos + Y_RANGE, MAX_BTN_W, BTN_H).build());
 

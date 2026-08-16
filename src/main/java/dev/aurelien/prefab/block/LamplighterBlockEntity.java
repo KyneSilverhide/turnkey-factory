@@ -2,6 +2,7 @@ package dev.aurelien.prefab.block;
 
 import dev.aurelien.prefab.build.InventoryNetwork;
 import dev.aurelien.prefab.build.NaturalTerrain;
+import dev.aurelien.prefab.config.PrefabServerConfig;
 import dev.aurelien.prefab.menu.LamplighterMenu;
 import dev.aurelien.prefab.reg.ModBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -60,15 +61,17 @@ import java.util.Set;
  * le texturiseur puise 1 cobblestone pour poser indifféremment gravier/andésite/pierre.
  */
 public class LamplighterBlockEntity extends BlockEntity implements MenuProvider, CenterableMachine {
-    public static final int MIN_RANGE = 8;
-    public static final int MAX_RANGE = 64;
+    /** Bornes réglables via {@link PrefabServerConfig#LAMPLIGHTER_MIN_RANGE}/{@code LAMPLIGHTER_MAX_RANGE}. */
+    public static int minRange() { return PrefabServerConfig.LAMPLIGHTER_MIN_RANGE.get(); }
+    public static int maxRange() { return PrefabServerConfig.LAMPLIGHTER_MAX_RANGE.get(); }
     public static final int DEFAULT_RANGE = 24;
 
     // Espacement par défaut : la lanterne éclaire en niveau 15, -1 par bloc parcouru. A mi-chemin
     // entre deux lampadaires espacés de 12, on est a distance 6 -> niveau ~9, confortablement
     // au-dessus du seuil historique (8) qui empêche les spawns hostiles sur un bloc opaque.
-    public static final int MIN_SPACING = 6;
-    public static final int MAX_SPACING = 32;
+    /** Bornes réglables via {@link PrefabServerConfig#LAMPLIGHTER_MIN_SPACING}/{@code LAMPLIGHTER_MAX_SPACING}. */
+    public static int minSpacing() { return PrefabServerConfig.LAMPLIGHTER_MIN_SPACING.get(); }
+    public static int maxSpacing() { return PrefabServerConfig.LAMPLIGHTER_MAX_SPACING.get(); }
     public static final int DEFAULT_SPACING = 12;
 
     private static final int STEP_WINDOW = 3;
@@ -82,8 +85,8 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider,
     public static final int STATUS_INACTIVE = 4;
     public static final int STATUS_NO_LINK = 5;
 
-    private int range = DEFAULT_RANGE;
-    private int spacing = DEFAULT_SPACING;
+    private int range = clampRange(DEFAULT_RANGE);
+    private int spacing = clampSpacing(DEFAULT_SPACING);
     private int scanCooldown = 0;
     private boolean active = false;
     private boolean planComputed = false;
@@ -147,11 +150,11 @@ public class LamplighterBlockEntity extends BlockEntity implements MenuProvider,
     }
 
     public static int clampRange(int v) {
-        return Math.max(MIN_RANGE, Math.min(MAX_RANGE, v));
+        return Math.max(minRange(), Math.min(maxRange(), v));
     }
 
     public static int clampSpacing(int v) {
-        return Math.max(MIN_SPACING, Math.min(MAX_SPACING, v));
+        return Math.max(minSpacing(), Math.min(maxSpacing(), v));
     }
 
     // ----- CenterableMachine -----

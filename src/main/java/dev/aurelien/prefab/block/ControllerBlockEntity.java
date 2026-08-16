@@ -8,6 +8,7 @@ import dev.aurelien.prefab.build.InventoryNetwork;
 import dev.aurelien.prefab.build.NaturalTerrain;
 import dev.aurelien.prefab.build.RoofType;
 import dev.aurelien.prefab.build.Theme;
+import dev.aurelien.prefab.config.PrefabServerConfig;
 import dev.aurelien.prefab.compat.CreateCompat;
 import dev.aurelien.prefab.menu.ControllerMenu;
 import dev.aurelien.prefab.reg.ModBlockEntities;
@@ -58,9 +59,10 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
-    public static final int MIN_SIZE = 7;          // minimum commun aux 3 dimensions
-    public static final int MAX_HORIZONTAL = 63;   // largeur/longueur : impair, donc max 63 (borne demandée : 64)
-    public static final int MAX_HEIGHT = 64;       // hauteur : pas par 1
+    /** Bornes réglables via {@link PrefabServerConfig#CONTROLLER_MIN_SIZE}/{@code CONTROLLER_MAX_HORIZONTAL}/{@code CONTROLLER_MAX_HEIGHT}. */
+    public static int minSize() { return PrefabServerConfig.CONTROLLER_MIN_SIZE.get(); }        // minimum commun aux 3 dimensions
+    public static int maxHorizontal() { return PrefabServerConfig.CONTROLLER_MAX_HORIZONTAL.get(); } // largeur/longueur : ramenée à l'impair inférieur (cf. clampHorizontal)
+    public static int maxHeight() { return PrefabServerConfig.CONTROLLER_MAX_HEIGHT.get(); }     // hauteur : pas par 1
     public static final int HORIZONTAL_STEP = 2;   // largeur/longueur : seulement des valeurs impaires
     public static final int OFFSET_MAX = 15;
 
@@ -69,7 +71,7 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
     private static final int MAX_FLOOR_PREVIEW = 4096; // couvre l'empreinte max (63×63 = 3969)
     private static final int BUILD_PER_TICK = 32;     // blocs posés par tick pendant la construction
 
-    private int width = 7, length = 7, height = 7;
+    private int width = clampHorizontal(7), length = clampHorizontal(7), height = clampHeight(7);
     private int offX = 0, offY = 0, offZ = 0;
     private Direction facing = Direction.NORTH;
     private RoofType roofType = RoofType.FLAT;
@@ -129,16 +131,16 @@ public class ControllerBlockEntity extends BlockEntity implements MenuProvider {
         onConfigChanged();
     }
 
-    /** Largeur/longueur : bornées [7, 63] et forcées impaires. */
+    /** Largeur/longueur : bornées [{@link #minSize()}, {@link #maxHorizontal()}] et forcées impaires. */
     public static int clampHorizontal(int v) {
-        int c = Math.max(MIN_SIZE, Math.min(MAX_HORIZONTAL, v));
-        if (c % 2 == 0) c--;   // ramène à la valeur impaire inférieure (reste >= 7)
+        int c = Math.max(minSize(), Math.min(maxHorizontal(), v));
+        if (c % 2 == 0) c--;   // ramène à la valeur impaire inférieure (reste >= minSize())
         return c;
     }
 
-    /** Hauteur : bornée [7, 64], pas de 1. */
+    /** Hauteur : bornée [{@link #minSize()}, {@link #maxHeight()}], pas de 1. */
     public static int clampHeight(int v) {
-        return Math.max(MIN_SIZE, Math.min(MAX_HEIGHT, v));
+        return Math.max(minSize(), Math.min(maxHeight(), v));
     }
 
     // ----- Décalage du fantôme -----

@@ -147,12 +147,12 @@ public class ControllerScreen extends MachineScreen<ControllerMenu> {
     }
 
     private void horizontalRow(int colDx, int y, IntSupplier get, IntConsumer set) {
-        row(colDx, y, get, set, ControllerBlockEntity.MIN_SIZE, ControllerBlockEntity.MAX_HORIZONTAL,
+        row(colDx, y, get, set, ControllerBlockEntity.minSize(), ControllerBlockEntity.maxHorizontal(),
                 ControllerBlockEntity.HORIZONTAL_STEP, this::sendDims);
     }
 
     private void heightRow(int colDx, int y, IntSupplier get, IntConsumer set) {
-        row(colDx, y, get, set, ControllerBlockEntity.MIN_SIZE, ControllerBlockEntity.MAX_HEIGHT, 1, this::sendDims);
+        row(colDx, y, get, set, ControllerBlockEntity.minSize(), ControllerBlockEntity.maxHeight(), 1, this::sendDims);
     }
 
     private void offRow(int colDx, int y, IntSupplier get, IntConsumer set) {

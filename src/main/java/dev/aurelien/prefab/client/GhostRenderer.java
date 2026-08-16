@@ -34,11 +34,9 @@ import java.util.List;
 
 @EventBusSubscriber(modid = PrefabMod.MODID, value = Dist.CLIENT)
 public class GhostRenderer {
-    // Distance depuis laquelle on cherche des contrôleurs/niveleuses. Doit couvrir le pire cas : un
-    // contrôleur avec dimensions ET décalage du fantôme au maximum (cf. ControllerBlockEntity.MAX_HORIZONTAL/
-    // MAX_HEIGHT/OFFSET_MAX) peut avoir un coin de bâtiment à ~150 blocs de la position du bloc contrôleur
-    // lui-même — sans cette marge, le fantôme disparaîtrait quand le joueur se tient au bord du bâtiment.
-    private static final int RENDER_RADIUS = 160; // blocs
+    // Marge de sécurité ajoutée au pire cas calculé par renderRadius() (cf. sa javadoc) — dérivée de
+    // l'écart observé à l'origine entre le pire cas théorique (~136 blocs) et le rayon retenu (160).
+    private static final int RENDER_RADIUS_MARGIN = 24; // blocs
     // Reparcourir tous les block entities des chunks proches est coûteux (jusqu'à ~21×21 chunks à ce rayon) :
     // on ne le refait que toutes les RESCAN_INTERVAL frames au lieu de chaque frame (60+ fois/s) — la
     // position d'un contrôleur/niveleuse ne change de toute façon jamais entre deux poses.
@@ -223,6 +221,28 @@ public class GhostRenderer {
      * identiques) et met à jour les deux caches. Appelé au plus une fois toutes les
      * {@value #RESCAN_INTERVAL} frames (cf. {@link #onRenderLevel}), jamais à chaque frame.
      */
+    /**
+     * Rayon de recherche (autour de la caméra) des block entities dont on doit garder ou recalculer le
+     * fantôme. Doit couvrir le pire cas <strong>actuellement configuré</strong> (cf.
+     * {@link dev.aurelien.prefab.config.PrefabServerConfig}, réglable sans redémarrage) : un contrôleur
+     * avec dimensions ET décalage au maximum (cf. {@link ControllerBlockEntity#maxHorizontal()}/
+     * {@code maxHeight()}/{@code OFFSET_MAX}) peut avoir un coin de bâtiment loin de son propre bloc, et
+     * une niveleuse/un texturiseur/un allumeur de réverbères agit jusqu'à sa portée/son rayon maximum
+     * autour de son propre bloc — sans cette marge, le fantôme disparaîtrait quand le joueur se tient
+     * au bord de la zone. Recalculé à chaque rescan plutôt que mis en cache : coût négligeable face à
+     * {@link #RESCAN_INTERVAL}, et reste juste si la config est modifiée en jeu.
+     */
+    private static int renderRadius() {
+        int horizontalReach = ControllerBlockEntity.maxHorizontal() + ControllerBlockEntity.OFFSET_MAX;
+        int verticalReach = ControllerBlockEntity.maxHeight() + ControllerBlockEntity.OFFSET_MAX;
+        double controllerWorstCase = Math.sqrt(2.0 * horizontalReach * horizontalReach + (double) verticalReach * verticalReach);
+
+        int machineWorstCase = Math.max(LevelerBlockEntity.maxRange(),
+                Math.max(TexturizerBlockEntity.maxRadius(), LamplighterBlockEntity.maxRange()));
+
+        return (int) Math.ceil(Math.max(controllerWorstCase, machineWorstCase)) + RENDER_RADIUS_MARGIN;
+    }
+
     private static void rescan(ClientLevel level, Vec3 cam) {
         List<ControllerBlockEntity> controllers = new ArrayList<>();
         List<LevelerBlockEntity> levelers = new ArrayList<>();
@@ -231,8 +251,9 @@ public class GhostRenderer {
         List<StarterHouseBlockEntity> starterHouses = new ArrayList<>();
         int camChunkX = Mth.floor(cam.x) >> 4;
         int camChunkZ = Mth.floor(cam.z) >> 4;
-        int chunkRadius = (RENDER_RADIUS >> 4) + 1;
-        double radiusSqr = (double) RENDER_RADIUS * RENDER_RADIUS;
+        int renderRadius = renderRadius();
+        int chunkRadius = (renderRadius >> 4) + 1;
+        double radiusSqr = (double) renderRadius * renderRadius;
 
         for (int dx = -chunkRadius; dx <= chunkRadius; dx++) {
             for (int dz = -chunkRadius; dz <= chunkRadius; dz++) {
@@ -242,7 +263,7 @@ public class GhostRenderer {
                 }
                 for (BlockEntity be : chunk.getBlockEntities().values()) {
                     // Distance à la boîte RÉSERVÉE (bâtiment + marge), pas au bloc contrôleur lui-même :
-                    // sur un grand bâtiment, le joueur peut être à côté d'un mur mais à plus de RENDER_RADIUS
+                    // sur un grand bâtiment, le joueur peut être à côté d'un mur mais à plus de renderRadius()
                     // du contrôleur — le fantôme doit quand même rester visible tant qu'on est près de la
                     // structure qu'il matérialise.
                     if (be instanceof ControllerBlockEntity controller

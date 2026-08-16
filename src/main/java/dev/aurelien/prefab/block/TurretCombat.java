@@ -2,6 +2,7 @@ package dev.aurelien.prefab.block;
 
 import dev.aurelien.prefab.build.InventoryNetwork;
 import dev.aurelien.prefab.compat.MineColoniesCompat;
+import dev.aurelien.prefab.config.PrefabServerConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -51,8 +52,9 @@ import java.util.function.IntSupplier;
  * une rafale d'un jet de flammes sans que cette classe ait à connaître l'une ou l'autre.
  */
 public class TurretCombat {
-    public static final int MIN_RANGE = 4;
-    public static final int MAX_RANGE = 32;
+    /** Bornes réglables via {@link PrefabServerConfig#TURRET_MIN_RANGE}/{@code TURRET_MAX_RANGE}. */
+    public static int minRange() { return PrefabServerConfig.TURRET_MIN_RANGE.get(); }
+    public static int maxRange() { return PrefabServerConfig.TURRET_MAX_RANGE.get(); }
     public static final int DEFAULT_RANGE = 12;
 
     /**
@@ -85,7 +87,7 @@ public class TurretCombat {
     private final IntSupplier fireIntervalTicks;
     private final List<BlockPos> linked = new ArrayList<>();
 
-    private int range = DEFAULT_RANGE;
+    private int range = clampRange(DEFAULT_RANGE);
     private boolean active = false;
     private boolean targetHostile = true;
     private boolean targetNeutral = false;
@@ -145,7 +147,7 @@ public class TurretCombat {
     }
 
     public static int clampRange(int v) {
-        return Math.max(MIN_RANGE, Math.min(MAX_RANGE, v));
+        return Math.max(minRange(), Math.min(maxRange(), v));
     }
 
     /** Enregistré une seule fois, à la pose (cf. {@code setPlacedBy} des deux blocs tourelle). */
@@ -348,17 +350,19 @@ public class TurretCombat {
      * Type {@code magic} pour toutes les armes, y compris le lance-flammes : {@code inFire} serait
      * purement annulé sur les blazes et cubes de magma (cf. {@code TurretFlamethrowerBlock}).
      * <p>
-     * Cible MineColonies ({@link MineColoniesCompat#isMineColoniesEntity}) : détour par
+     * Cible MineColonies ({@link MineColoniesCompat#isMineColoniesEntity}), config activée
+     * ({@link PrefabServerConfig#MINECOLONIES_TURRET_FIX}) : détour par
      * {@link MineColoniesCompat#forceDamage}, qui garantit le dégât même si le raider le bloque ou le
      * plafonne (cf. son javadoc) — sans quoi un tir sans attaquant identifiable, comme celui-ci, ne
      * fait jamais mourir un raider MineColonies.
      */
     private static void applyHit(ServerLevel server, LivingEntity target, TurretWeaponBlock.Shot shot) {
         DamageSource source = server.damageSources().magic();
-        if (MineColoniesCompat.isMineColoniesEntity(target)) {
-            MineColoniesCompat.forceDamage(target, source, shot.damage());
+        float damage = (float) (shot.damage() * PrefabServerConfig.TURRET_DAMAGE_MULTIPLIER.get());
+        if (PrefabServerConfig.MINECOLONIES_TURRET_FIX.get() && MineColoniesCompat.isMineColoniesEntity(target)) {
+            MineColoniesCompat.forceDamage(target, source, damage);
         } else {
-            target.hurt(source, shot.damage());
+            target.hurt(source, damage);
         }
         if (shot.igniteSeconds() > 0) {
             target.igniteForSeconds(shot.igniteSeconds());

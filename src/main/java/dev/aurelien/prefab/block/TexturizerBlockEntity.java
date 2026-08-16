@@ -3,6 +3,7 @@ package dev.aurelien.prefab.block;
 import dev.aurelien.prefab.build.InventoryNetwork;
 import dev.aurelien.prefab.build.NaturalTerrain;
 import dev.aurelien.prefab.build.ToolDurability;
+import dev.aurelien.prefab.config.PrefabServerConfig;
 import dev.aurelien.prefab.menu.TexturizerMenu;
 import dev.aurelien.prefab.reg.ModBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -58,8 +59,9 @@ import java.util.Set;
  * comme la niveleuse.
  */
 public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, Container, CenterableMachine {
-    public static final int MIN_RADIUS = 2;
-    public static final int MAX_RADIUS = 64;
+    /** Bornes réglables via {@link PrefabServerConfig#TEXTURIZER_MIN_RADIUS}/{@code TEXTURIZER_MAX_RADIUS}. */
+    public static int minRadius() { return PrefabServerConfig.TEXTURIZER_MIN_RADIUS.get(); }
+    public static int maxRadius() { return PrefabServerConfig.TEXTURIZER_MAX_RADIUS.get(); }
     public static final int DEFAULT_RADIUS = 8;
 
     private static final int STEP_WINDOW = 3;       // amplitude de suivi du terrain par saut de colonne
@@ -120,7 +122,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     public static final int STATUS_INACTIVE = 4;
     public static final int STATUS_NO_LINK = 5;
 
-    private int radius = DEFAULT_RADIUS;
+    private int radius = clampRadius(DEFAULT_RADIUS);
     private Palette palette = Palette.STONE;
     private boolean coarseDirtPatches = false;
     private int scanCooldown = 0;
@@ -205,7 +207,7 @@ public class TexturizerBlockEntity extends BlockEntity implements MenuProvider, 
     }
 
     public static int clampRadius(int v) {
-        return Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, v));
+        return Math.max(minRadius(), Math.min(maxRadius(), v));
     }
 
     // ----- CenterableMachine -----

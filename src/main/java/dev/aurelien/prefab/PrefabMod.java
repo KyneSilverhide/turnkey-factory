@@ -20,6 +20,7 @@ import dev.aurelien.prefab.network.SetTurretRangePayload;
 import dev.aurelien.prefab.network.SetTurretTargetsPayload;
 import dev.aurelien.prefab.compat.CreateCompat;
 import dev.aurelien.prefab.compat.create.CreateKineticContent;
+import dev.aurelien.prefab.config.PrefabServerConfig;
 import dev.aurelien.prefab.reg.ModBlockEntities;
 import dev.aurelien.prefab.reg.ModBlocks;
 import dev.aurelien.prefab.reg.ModCreativeTabs;
@@ -28,6 +29,7 @@ import dev.aurelien.prefab.reg.ModMenus;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -53,6 +55,8 @@ public class PrefabMod {
 
         modBus.addListener(this::registerPayloads);
         modBus.addListener(this::registerCapabilities);
+
+        container.registerConfig(ModConfig.Type.SERVER, PrefabServerConfig.SPEC);
     }
 
     /**

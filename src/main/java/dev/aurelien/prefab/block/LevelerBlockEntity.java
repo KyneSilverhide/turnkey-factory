@@ -3,6 +3,7 @@ package dev.aurelien.prefab.block;
 import dev.aurelien.prefab.build.InventoryNetwork;
 import dev.aurelien.prefab.build.NaturalTerrain;
 import dev.aurelien.prefab.build.ToolDurability;
+import dev.aurelien.prefab.config.PrefabServerConfig;
 import dev.aurelien.prefab.menu.LevelerMenu;
 import dev.aurelien.prefab.reg.ModBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -46,8 +47,9 @@ import java.util.List;
  * feuilles) : les constructions du joueur et la végétation ligneuse sont protégées.
  */
 public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Container, CenterableMachine {
-    public static final int MIN_RANGE = 4;
-    public static final int MAX_RANGE = 64;
+    /** Bornes réglables via {@link PrefabServerConfig#LEVELER_MIN_RANGE}/{@code LEVELER_MAX_RANGE}. */
+    public static int minRange() { return PrefabServerConfig.LEVELER_MIN_RANGE.get(); }
+    public static int maxRange() { return PrefabServerConfig.LEVELER_MAX_RANGE.get(); }
     public static final int DEFAULT_RANGE = 8;
     public static final int TARGET_MAX = 20;
     public static final int MIN_FILL_DEPTH = 1;
@@ -73,7 +75,7 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
     public static final int STATUS_NO_LINK = 5;
     public static final int STATUS_NO_PICKAXE = 6;
 
-    private int range = DEFAULT_RANGE;
+    private int range = clampRange(DEFAULT_RANGE);
     private int targetOffsetY = 0;
     private int fillDepth = DEFAULT_FILL_DEPTH;
     private int scanCooldown = 0;
@@ -180,7 +182,7 @@ public class LevelerBlockEntity extends BlockEntity implements MenuProvider, Con
     }
 
     public static int clampRange(int v) {
-        return Math.max(MIN_RANGE, Math.min(MAX_RANGE, v));
+        return Math.max(minRange(), Math.min(maxRange(), v));
     }
 
     public static int clampFillDepth(int v) {
