@@ -1,9 +1,11 @@
 package dev.aurelien.prefab.block;
 
 import dev.aurelien.prefab.build.InventoryNetwork;
+import dev.aurelien.prefab.compat.MineColoniesCompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -345,9 +347,19 @@ public class TurretCombat {
      * <p>
      * Type {@code magic} pour toutes les armes, y compris le lance-flammes : {@code inFire} serait
      * purement annulé sur les blazes et cubes de magma (cf. {@code TurretFlamethrowerBlock}).
+     * <p>
+     * Cible MineColonies ({@link MineColoniesCompat#isMineColoniesEntity}) : détour par
+     * {@link MineColoniesCompat#forceDamage}, qui garantit le dégât même si le raider le bloque ou le
+     * plafonne (cf. son javadoc) — sans quoi un tir sans attaquant identifiable, comme celui-ci, ne
+     * fait jamais mourir un raider MineColonies.
      */
     private static void applyHit(ServerLevel server, LivingEntity target, TurretWeaponBlock.Shot shot) {
-        target.hurt(server.damageSources().magic(), shot.damage());
+        DamageSource source = server.damageSources().magic();
+        if (MineColoniesCompat.isMineColoniesEntity(target)) {
+            MineColoniesCompat.forceDamage(target, source, shot.damage());
+        } else {
+            target.hurt(source, shot.damage());
+        }
         if (shot.igniteSeconds() > 0) {
             target.igniteForSeconds(shot.igniteSeconds());
         }
